@@ -59,5 +59,9 @@
     <string name="home_tv_validation">VALIDATION</string>
     <string name="home_tv_messaging">MESSAGING</string>
     <string name="home_tv_edge">EDGE</string>
+    <string name="custom_action">Custom Action</string>
+    <string name="trigger_custom_in_app_message">Trigger Custom In-App Message</string>
+    <string name="refresh_in_app_messages">Refresh In-App Messages</string>
+    <string name="app_surface">App surface</string>
 
 </resources>
