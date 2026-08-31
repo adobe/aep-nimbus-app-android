@@ -8,6 +8,7 @@ import com.adobe.marketing.mobile.LoggingMode
 import com.adobe.marketing.mobile.MobileCore
 import com.adobe.marketing.mobile.edge.consent.Consent
 import com.adobe.marketing.mobile.edge.identity.Identity
+import com.adobe.marketing.mobile.Messaging
 
 object AepBootstrapper {
 
@@ -20,7 +21,8 @@ object AepBootstrapper {
             Identity.EXTENSION,
             Consent.EXTENSION,
             Lifecycle.EXTENSION,
-            Assurance.EXTENSION
+            Assurance.EXTENSION,
+            Messaging.EXTENSION
         )
         MobileCore.registerExtensions(extensions) {
             MobileCore.configureWithAppID(AepConfig.APP_ID)

@@ -77,6 +77,7 @@ dependencies {
     implementation("com.adobe.marketing.mobile:edgeconsent:3.0.3")
     implementation("com.adobe.marketing.mobile:lifecycle:3.0.1")
     implementation("com.adobe.marketing.mobile:assurance:3.0.7")
+    implementation("com.adobe.marketing.mobile:messaging:3.12.0")
 
     implementation("com.google.dagger:hilt-android:2.56.2")
     kapt("com.google.dagger:hilt-compiler:2.56.2")
