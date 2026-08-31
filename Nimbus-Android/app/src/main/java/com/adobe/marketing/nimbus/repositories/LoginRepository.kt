@@ -6,9 +6,11 @@ import javax.inject.Inject
 class LoginRepository @Inject constructor(
     private val identityService: IdentityService
 ) {
+    suspend fun experienceCloudId(): String? = identityService.experienceCloudId()
+
     suspend fun signedInEmail(): String? = identityService.loggedInEmail()
 
     fun login(username: String) = identityService.login(username)
 
-    fun logout() = identityService.logout()
+    suspend fun logout() = identityService.logout()
 }

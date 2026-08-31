@@ -1,4 +1,4 @@
 package com.adobe.marketing.nimbus.utils
 
-private fun String.truncatedEcid(): String =
+fun String.truncatedEcid(): String =
     if (length > 14) "${take(6)}...${takeLast(5)}" else this

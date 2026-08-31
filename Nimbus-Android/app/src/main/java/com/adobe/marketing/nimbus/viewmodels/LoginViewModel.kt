@@ -41,9 +41,4 @@ class LoginViewModel @Inject constructor(
     fun continueAsGuest() {
         _uiState.value = _uiState.value.copy(hasSeenLoginPrompt = true)
     }
-
-    fun logout() {
-        loginRepository.logout()
-        _uiState.value = _uiState.value.copy(signedInUser = null)
-    }
 }

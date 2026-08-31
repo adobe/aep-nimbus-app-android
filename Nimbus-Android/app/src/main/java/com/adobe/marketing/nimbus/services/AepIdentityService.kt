@@ -37,11 +37,12 @@ class AepIdentityService @Inject constructor() : IdentityService {
         Identity.updateIdentities(identityMap)
     }
 
-    override fun logout() {
+    override suspend fun logout() = suspendCancellableCoroutine<Unit> {  continuation ->
         Identity.getIdentities { identityMap ->
             identityMap?.getIdentityItemsForNamespace(NAMESPACE_EMAIL)?.forEach { item ->
                 Identity.removeIdentity(item, NAMESPACE_EMAIL)
             }
+            continuation.resume(Unit)
         }
     }
 

@@ -4,5 +4,5 @@ interface IdentityService {
     suspend fun experienceCloudId(): String?
     suspend fun loggedInEmail(): String?
     fun login(username: String)
-    fun logout()
+    suspend fun logout()
 }

@@ -1,4 +1,8 @@
 package com.adobe.marketing.nimbus.datamodels
 
-class ProfileUiState {
-}
+data class ProfileUiState (
+    val ecid: String? = null,
+    val signedInUser: String? = null,
+    val consentState: ConsentState = ConsentState.PENDING,
+    val pushEnabled: Boolean = false
+)

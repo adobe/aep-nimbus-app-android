@@ -63,7 +63,7 @@ fun NimbusMainScaffold(
                 })
                 AppTab.CART -> CartScreen(onShopNow = { viewModel.selectTab(AppTab.SHOP) })
                 AppTab.INBOX -> PlaceholderScreen("Inbox")
-                AppTab.PROFILE -> PlaceholderScreen("Profile")
+                AppTab.PROFILE -> ProfileScreen()
             }
         }
     }
