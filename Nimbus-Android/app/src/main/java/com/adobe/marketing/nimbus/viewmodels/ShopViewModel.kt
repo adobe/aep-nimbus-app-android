@@ -52,8 +52,9 @@ class ShopViewModel @Inject constructor(
 
     fun checkout() {
         if (cart.isEmpty()) return
-        val subtotal = subtotal()
+        val subtotal = _uiState.value.subtotal
         val xdm = CommerceXdmBuilder.purchase(cart, MockCatalog.products, subtotal)
+
         analyticsService.track(CommerceEvent(CommerceEventType.PURCHASES, xdm))
         analyticsService.trackAction("order-complete", mapOf("orderTotal" to "%.2f".format(subtotal)))
         cart.clear()
