@@ -6,6 +6,11 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
 }
 
+val localProperties = java.util.Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) load(file.inputStream())
+}
+
 android {
     namespace = "com.adobe.marketing.nimbus"
     compileSdk = 36
@@ -16,6 +21,12 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField(
+            "String",
+            "NIMBUS_APP_ID",
+            "\"${localProperties.getProperty("NIMBUS_APP_ID", "")}\""
+        )
     }
 
     buildTypes {
@@ -31,6 +42,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
