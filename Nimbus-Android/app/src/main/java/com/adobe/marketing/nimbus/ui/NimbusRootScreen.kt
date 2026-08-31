@@ -25,7 +25,7 @@ fun NimbusRootScreen (
         !consentState.hasChosenConsent -> ConsentGateScreen(viewModel = consentViewModel)
         loginState.isChecking -> LoadingScreen()
         !loginState.hasSeenLoginPrompt -> LoginGateScreen(viewModel = loginViewModel)
-        else -> MainContent()
+        else -> NimbusMainScaffold()
     }
 }
 
