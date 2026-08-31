@@ -47,6 +47,7 @@ class ShopViewModel @Inject constructor(
         val qty = cart[product.id] ?: return
         if (qty == 1) cart.remove(product.id) else cart[product.id] = qty - 1
         fire(CommerceEventType.PRODUCT_LIST_REMOVES, product)
+        analyticsService.trackAction("remove-from-cart", mapOf("sku" to product.sku))
         _uiState.value = buildUiState()
     }
 

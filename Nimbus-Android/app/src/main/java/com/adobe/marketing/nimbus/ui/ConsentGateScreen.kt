@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adobe.marketing.nimbus.datamodels.ConsentState
@@ -38,19 +39,22 @@ fun ConsentGateContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(64.dp))
         GateIconBadge(icon = Icons.Default.Lock)
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = "Help us personalise your experience",
-            style = MaterialTheme.typography.headlineSmall
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "We'd like to collect data to improve your shopping experience. You can change this anytime.",
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.weight(1f))
         Button(onClick = onAccept, modifier = Modifier.fillMaxWidth()) {
