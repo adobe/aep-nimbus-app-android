@@ -2,7 +2,6 @@ package com.adobe.marketing.nimbus.ui
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,21 +21,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.adobe.marketing.nimbus.datamodels.ContentCard
-import com.adobe.marketing.nimbus.datamodels.ContentSurface
-import com.adobe.marketing.nimbus.viewmodels.ContentCardsViewModel
+import com.adobe.marketing.nimbus.datamodels.Offer
+import com.adobe.marketing.nimbus.datamodels.OfferSurface
+import com.adobe.marketing.nimbus.viewmodels.OffersViewModel
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
+import androidx.core.net.toUri
 
 @Composable
-fun InboxScreen(viewModel: ContentCardsViewModel = hiltViewModel()) {
+fun InboxScreen(viewModel: OffersViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
-        viewModel.ensureLoaded(ContentSurface.INBOX)
+        viewModel.ensureLoaded(OfferSurface.INBOX)
     }
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val cards = uiState.cardsBySurface[ContentSurface.INBOX].orEmpty()
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    val cards by remember { derivedStateOf { uiState.value.offersBySurface[OfferSurface.INBOX].orEmpty() } }
     val context = LocalContext.current
 
     InboxContent(
@@ -45,23 +47,23 @@ fun InboxScreen(viewModel: ContentCardsViewModel = hiltViewModel()) {
             viewModel.onCardInteracted(card.id)
             card.actionUrl?.let { url ->
                 try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                } catch (e: ActivityNotFoundException) {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                } catch (_: ActivityNotFoundException) {
                     // No app can handle this URL - ignore.
                 }
             }
         },
         onCardDisplayed = { viewModel.onCardDisplayed(it.id)},
-        onDismiss = { viewModel.onCardDismissed(ContentSurface.INBOX, it.id) }
+        onDismiss = { viewModel.onCardDismissed(OfferSurface.INBOX, it.id) }
     )
 }
 
 @Composable
 private fun InboxContent(
-    cards: List<ContentCard>,
-    onCardTap: (ContentCard) -> Unit,
-    onCardDisplayed: (ContentCard) -> Unit,
-    onDismiss: (ContentCard) -> Unit
+    cards: List<Offer>,
+    onCardTap: (Offer) -> Unit,
+    onCardDisplayed: (Offer) -> Unit,
+    onDismiss: (Offer) -> Unit
 ) {
     if (cards.isEmpty()) {
         EmptyInboxState()
@@ -105,7 +107,7 @@ private fun EmptyInboxState() {
 
 @Composable
 private fun InboxCard(
-    card: ContentCard,
+    card: Offer,
     onTap: () -> Unit,
     onDisplayed: () -> Unit,
     onDismiss: () -> Unit

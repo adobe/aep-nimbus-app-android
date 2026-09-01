@@ -2,7 +2,6 @@ package com.adobe.marketing.nimbus.ui
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -50,41 +49,43 @@ import com.adobe.marketing.nimbus.utils.asPrice
 import com.adobe.marketing.nimbus.viewmodels.ShopViewModel
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.runtime.LaunchedEffect
-import com.adobe.marketing.nimbus.datamodels.ContentCard
-import com.adobe.marketing.nimbus.utils.toContentSurface
-import com.adobe.marketing.nimbus.viewmodels.ContentCardsViewModel
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
+import androidx.core.net.toUri
+import com.adobe.marketing.nimbus.datamodels.Offer
+import com.adobe.marketing.nimbus.utils.toOfferSurface
+import com.adobe.marketing.nimbus.viewmodels.OffersViewModel
 
 @Composable
 fun ShopScreen(
     onProceedToCart: () -> Unit = {},
     viewModel: ShopViewModel = hiltViewModel(),
-    contentCardsViewModel: ContentCardsViewModel = hiltViewModel()
+    offersViewModel: OffersViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val surface = uiState.selectedCategory.toContentSurface()
+    val surface = uiState.selectedCategory.toOfferSurface()
 
     LaunchedEffect(surface) {
-        contentCardsViewModel.ensureLoaded(surface)
+        offersViewModel.ensureLoaded(surface)
     }
-    val contentCardsState by
-    contentCardsViewModel.uiState.collectAsStateWithLifecycle()
-    val heroCard = contentCardsState.cardsBySurface[surface]?.firstOrNull()
+    val offersState = offersViewModel.uiState.collectAsStateWithLifecycle()
+    val heroCard by remember(surface) { derivedStateOf { offersState.value.offersBySurface[surface]?.firstOrNull()} }
     val context = LocalContext.current
 
     ShopContent(
         uiState = uiState,
         heroCard = heroCard,
         onHeroCardTap = { card ->
-            contentCardsViewModel.onCardInteracted(card.id)
+            offersViewModel.onCardInteracted(card.id)
             card.actionUrl?.let { url ->
                 try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                } catch (e: ActivityNotFoundException) {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                } catch (_: ActivityNotFoundException) {
                     // No app can handle this URL - ignore.
                 }
             }
         },
-        onHeroCardDisplayed = { contentCardsViewModel.onCardDisplayed(it.id) },
+        onHeroCardDisplayed = { offersViewModel.onCardDisplayed(it.id) },
         onSelectCategory = viewModel::selectCategory,
         onIncrement = viewModel::increment,
         onDecrement = viewModel::decrement,
@@ -95,9 +96,9 @@ fun ShopScreen(
 @Composable
 private fun ShopContent(
     uiState: ShopUiState,
-    heroCard: ContentCard?,
-    onHeroCardTap: (ContentCard) -> Unit,
-    onHeroCardDisplayed: (ContentCard) -> Unit,
+    heroCard: Offer?,
+    onHeroCardTap: (Offer) -> Unit,
+    onHeroCardDisplayed: (Offer) -> Unit,
     onSelectCategory: (ShopCategory?) -> Unit,
     onIncrement: (Product) -> Unit,
     onDecrement: (Product) -> Unit,
@@ -133,7 +134,7 @@ private fun ShopContent(
 }
 
 @Composable
-private fun ShopHeroBanner(card: ContentCard, onTap: () -> Unit, onDisplayed: () -> Unit) {
+private fun ShopHeroBanner(card: Offer, onTap: () -> Unit, onDisplayed: () -> Unit) {
     TrackedContentCard(
         card = card,
         onTap = onTap,

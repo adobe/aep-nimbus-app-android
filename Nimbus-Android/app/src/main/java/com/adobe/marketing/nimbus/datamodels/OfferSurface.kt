@@ -1,6 +1,6 @@
 package com.adobe.marketing.nimbus.datamodels
 
-enum class ContentSurface(val path: String) {
+enum class OfferSurface(val path: String) {
     HOME("home"),
     INBOX("inbox"),
     SHOP_ALL("shop_all"),

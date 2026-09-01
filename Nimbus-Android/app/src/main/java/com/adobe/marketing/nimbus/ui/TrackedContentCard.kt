@@ -4,11 +4,11 @@ import androidx.compose.material3.Card
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import com.adobe.marketing.nimbus.datamodels.ContentCard
+import com.adobe.marketing.nimbus.datamodels.Offer
 
 @Composable
 fun TrackedContentCard(
-    card: ContentCard,
+    card: Offer,
     onTap: () -> Unit,
     onDisplayed: () -> Unit,
     modifier: Modifier = Modifier,

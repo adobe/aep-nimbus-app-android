@@ -1,6 +1,6 @@
 package com.adobe.marketing.nimbus.datamodels
 
-data class ContentCard (
+data class Offer (
     val id: String,
     val title: String,
     val body: String,

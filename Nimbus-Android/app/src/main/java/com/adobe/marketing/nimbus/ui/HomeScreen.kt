@@ -2,7 +2,6 @@ package com.adobe.marketing.nimbus.ui
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,48 +16,58 @@ import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.adobe.marketing.nimbus.datamodels.ContentCard
-import com.adobe.marketing.nimbus.datamodels.ContentSurface
-import com.adobe.marketing.nimbus.viewmodels.ContentCardsViewModel
+import com.adobe.marketing.nimbus.datamodels.Offer
+import com.adobe.marketing.nimbus.datamodels.OfferSurface
+import com.adobe.marketing.nimbus.viewmodels.OffersViewModel
 
 @Composable
-fun HomeScreen(viewModel: ContentCardsViewModel = hiltViewModel()) {
+fun HomeScreen(viewModel: OffersViewModel = hiltViewModel()) {
     LaunchedEffect(Unit) {
-        viewModel.ensureLoaded(ContentSurface.HOME)
+        viewModel.ensureLoaded(OfferSurface.HOME)
     }
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val cards = uiState.cardsBySurface[ContentSurface.HOME].orEmpty()
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    val cards by remember { derivedStateOf {
+        uiState.value.offersBySurface[OfferSurface.HOME].orEmpty() } }
     val context = LocalContext.current
 
-    HomeContent(
-        cards = cards,
-        onCardTap = { card ->
-            viewModel.onCardInteracted(card.id)
-            card.actionUrl?.let { url ->
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                } catch (e: ActivityNotFoundException) {
-                    // No app can handle this URL - ignore.
+    PullToRefreshBox(
+        isRefreshing = uiState.value.isRefreshing,
+        onRefresh = { viewModel.refresh(OfferSurface.HOME) }
+    ) {
+        HomeContent(
+            cards = cards,
+            onCardTap = { card ->
+                viewModel.onCardInteracted(card.id)
+                card.actionUrl?.let { url ->
+                    try {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                    } catch (_: ActivityNotFoundException) {
+                        // No app can handle this URL - ignore.
+                    }
                 }
-            }
-        },
-        onCardDisplayed = { viewModel.onCardDisplayed(it.id) }
-    )
+            },
+            onCardDisplayed = { viewModel.onCardDisplayed(it.id) }
+        )
+    }
 }
 
 @Composable
 private fun HomeContent(
-    cards: List<ContentCard>,
-    onCardTap: (ContentCard) -> Unit,
-    onCardDisplayed: (ContentCard) -> Unit
+    cards: List<Offer>,
+    onCardTap: (Offer) -> Unit,
+    onCardDisplayed: (Offer) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -83,7 +92,7 @@ private fun HomeContent(
 }
 
 @Composable
-private fun ContentCardTile(card: ContentCard, onTap: () -> Unit, onDisplayed: () -> Unit) {
+private fun ContentCardTile(card: Offer, onTap: () -> Unit, onDisplayed: () -> Unit) {
     TrackedContentCard(
         card = card,
         onTap = onTap,
