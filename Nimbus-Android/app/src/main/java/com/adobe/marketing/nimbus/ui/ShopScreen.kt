@@ -251,7 +251,7 @@ private fun ShopCartBar(
     }
 }
 
-private val ShopCategory.displayName: String
+val ShopCategory.displayName: String
     get() = name.lowercase().replaceFirstChar { it.uppercase() }
 
 val ShopCategory.icon: ImageVector

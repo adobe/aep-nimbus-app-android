@@ -2,7 +2,6 @@ package com.adobe.marketing.nimbus.ui
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,6 +34,7 @@ import com.adobe.marketing.mobile.aepcomposeui.style.LargeImageUIStyle
 import com.adobe.marketing.mobile.aepcomposeui.style.ImageOnlyUIStyle
 import com.adobe.marketing.mobile.services.Log
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -47,21 +47,41 @@ import com.adobe.marketing.nimbus.datamodels.OfferSurface
 import com.adobe.marketing.nimbus.viewmodels.OffersViewModel
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import com.adobe.marketing.mobile.messaging.ContentCardUIProvider
 import com.adobe.marketing.mobile.messaging.Surface
+import com.adobe.marketing.nimbus.datamodels.ShopCategory
+import com.adobe.marketing.nimbus.viewmodels.ShopViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: OffersViewModel = hiltViewModel()) {
+fun HomeScreen(
+    viewModel: OffersViewModel = hiltViewModel(),
+    shopViewModel: ShopViewModel = hiltViewModel(),
+    onNavigateToShop: () -> Unit = {}
+) {
     var mode by remember { mutableStateOf(RenderMode.SDK_UI) }
-    val ccUiProvider = remember {
-        ContentCardUIProvider(Surface(OfferSurface.HOME.path))
-    }
+    val ccUiProvider = remember { ContentCardUIProvider(Surface(OfferSurface.HOME.path)) }
+
+    OfferFetchFailureToast(viewModel.fetchFailed)
 
     Column(modifier = Modifier.fillMaxSize()) {
+        HomeHeader()
+        QuickShopCategoriesRow(onCategoryTap = { category ->
+            shopViewModel.selectCategory(category)
+            onNavigateToShop()
+        })
+
+        Text(
+            text = "Offers for you",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp)
+        )
         RenderModeSelector(mode = mode, onModeSelected = { mode = it })
 
         Text(
@@ -218,3 +238,42 @@ private fun ContentCardTile(
         }
     }
 }
+
+@Composable
+private fun HomeHeader() {
+    Text(
+        text = "Welcome to Nimbus",
+        style = MaterialTheme.typography.headlineSmall,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+}
+
+@Composable
+private fun QuickShopCategoriesRow(onCategoryTap: (ShopCategory) -> Unit) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(ShopCategory.entries) { category ->
+            Card(onClick = { onCategoryTap(category) }) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = category.icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text(
+                        text = category.displayName,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+

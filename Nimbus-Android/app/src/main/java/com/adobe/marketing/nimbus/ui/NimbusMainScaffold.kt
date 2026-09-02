@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inbox
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Storefront
@@ -48,18 +47,18 @@ fun NimbusMainScaffold(
                         selected = selectedTab == spec.tab,
                         onClick = { viewModel.selectTab(spec.tab) },
                         icon = { Icon(imageVector = spec.icon, contentDescription = spec.label) },
-                        label = { Text(spec.label) }
-                    )
+                        label = { Text(spec.label) })
                 }
             }
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        }) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
             when (selectedTab) {
-                AppTab.HOME -> HomeScreen()
-                AppTab.SHOP -> ShopScreen(onProceedToCart = {
-                    viewModel.selectTab(AppTab.CART)
-                })
+                AppTab.HOME -> HomeScreen(onNavigateToShop = { viewModel.selectTab(AppTab.SHOP) })
+                AppTab.SHOP -> ShopScreen(onProceedToCart = { viewModel.selectTab(AppTab.CART) })
                 AppTab.CART -> CartScreen(onShopNow = { viewModel.selectTab(AppTab.SHOP) })
                 AppTab.INBOX -> InboxScreen()
                 AppTab.PROFILE -> ProfileScreen()
