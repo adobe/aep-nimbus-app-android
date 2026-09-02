@@ -33,6 +33,12 @@ android {
             "NIMBUS_APP_ID",
             "\"${localProperties.getProperty("NIMBUS_APP_ID", "")}\""
         )
+
+        buildConfigField(
+            "String",
+            "ASSURANCE_DEBUG_URL",
+            "\"${localProperties.getProperty("ASSURANCE_DEBUG_URL", "")}\""
+        )
     }
 
     buildTypes {
@@ -73,11 +79,15 @@ dependencies {
 
     implementation("com.adobe.marketing.mobile:core:3.7.0")
     implementation("com.adobe.marketing.mobile:edge:3.0.2")
+    implementation("com.adobe.marketing.mobile:edgebridge:3.0.1")
     implementation("com.adobe.marketing.mobile:edgeidentity:3.0.1")
     implementation("com.adobe.marketing.mobile:edgeconsent:3.0.3")
     implementation("com.adobe.marketing.mobile:lifecycle:3.0.1")
     implementation("com.adobe.marketing.mobile:assurance:3.0.7")
     implementation("com.adobe.marketing.mobile:messaging:3.12.0")
+
+    implementation("io.coil-kt.coil3:coil-compose:3.0.4")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
 
     implementation("com.google.dagger:hilt-android:2.56.2")
     kapt("com.google.dagger:hilt-compiler:2.56.2")
