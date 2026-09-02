@@ -2,8 +2,10 @@ package com.adobe.marketing.nimbus.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adobe.marketing.mobile.Assurance
 import com.adobe.marketing.nimbus.datamodels.ConsentState
 import com.adobe.marketing.nimbus.datamodels.ProfileUiState
+import com.adobe.marketing.nimbus.repositories.AssuranceRepository
 import com.adobe.marketing.nimbus.repositories.ConsentRepository
 import com.adobe.marketing.nimbus.repositories.LoginRepository
 import com.adobe.marketing.nimbus.repositories.NotificationRepository
@@ -19,7 +21,8 @@ import javax.inject.Inject
 class ProfileViewModel @Inject constructor(
     private val consentRepository: ConsentRepository,
     private val loginRepository: LoginRepository,
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val assuranceRepository: AssuranceRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -28,8 +31,12 @@ class ProfileViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val ecid = loginRepository.experienceCloudId()
-            val email = loginRepository.signedInEmail()
-            _uiState.value = _uiState.value.copy(ecid = ecid, signedInUser = email)
+            _uiState.value = _uiState.value.copy(ecid = ecid)
+        }
+        viewModelScope.launch {
+            loginRepository.loginGateState.collect {  gateState ->
+                _uiState.value = _uiState.value.copy(signedInUser = gateState.signedInUser)
+             }
         }
         viewModelScope.launch {
             consentRepository.consentGateState.collect { gateState ->
@@ -37,6 +44,17 @@ class ProfileViewModel @Inject constructor(
             }
         }
         refreshPushState()
+        viewModelScope.launch {
+            assuranceRepository.sessionUrl.collect { url ->
+                _uiState.value = _uiState.value.copy(assuranceSessionUrl = url)
+            }
+        }
+    }
+
+    fun connectAssurance(url: String) {
+        if (url.isBlank()) return
+        Assurance.startSession(url)
+        assuranceRepository.recordSessionStarted(url)
     }
 
     fun refreshPushState() {
@@ -48,15 +66,11 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun logout() {
-        viewModelScope.launch {
-            loginRepository.logout()
-            _uiState.value = _uiState.value.copy(signedInUser = null)
-        }
+        viewModelScope.launch { loginRepository.logout() }
     }
 
     fun login(username: String) {
-        loginRepository.login(username)
-        _uiState.value = _uiState.value.copy(signedInUser = username)
+        viewModelScope.launch {  loginRepository.login(username) }
     }
 
     fun notificationEnableAction(): NotificationEnableAction = notificationRepository.notificationEnableAction()

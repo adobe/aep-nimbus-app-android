@@ -14,6 +14,7 @@ import com.adobe.marketing.nimbus.datamodels.ConsentState
 import com.adobe.marketing.nimbus.viewmodels.ProfileViewModel
 import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +34,7 @@ import com.adobe.marketing.nimbus.datamodels.ProfileUiState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -44,6 +46,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -73,25 +76,28 @@ fun ProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    ProfileContent(uiState = uiState, onConsentToggle = { enabled ->
-        viewModel.setConsent(if (enabled) ConsentState.YES else
-            ConsentState.NO)
-    }, onLogin = viewModel::login, onLogout = viewModel::logout,
-        onEnableNotifications = {
-            when (viewModel.notificationEnableAction()) {
-                NotificationEnableAction.REQUEST_PERMISSION ->
-
+    ProfileContent(
+        uiState = uiState, onConsentToggle = { enabled ->
+        viewModel.setConsent(
+            if (enabled) ConsentState.YES else ConsentState.NO
+        )
+    }, onLogin = viewModel::login, onLogout = viewModel::logout, onEnableNotifications = {
+        when (viewModel.notificationEnableAction()) {
+            NotificationEnableAction.REQUEST_PERMISSION -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                NotificationEnableAction.OPEN_SETTINGS ->
-                    context.startActivity(
-                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply
-                        {
-                            putExtra(Settings.EXTRA_APP_PACKAGE,
-                                context.packageName)
-                        }
-                    )
+                }
             }
-        })
+
+            NotificationEnableAction.OPEN_SETTINGS -> context.startActivity(
+                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(
+                        Settings.EXTRA_APP_PACKAGE, context.packageName
+                    )
+                })
+        }
+    }, onConnectAssurance = viewModel::connectAssurance
+    )
 }
 
 @Composable
@@ -100,7 +106,8 @@ private fun ProfileContent(
     onConsentToggle: (Boolean) -> Unit,
     onLogin: (String) -> Unit,
     onLogout: () -> Unit,
-    onEnableNotifications: () -> Unit
+    onEnableNotifications: () -> Unit,
+    onConnectAssurance: (String) -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
 
@@ -163,6 +170,36 @@ private fun ProfileContent(
                 TextButton(onClick = onEnableNotifications) { Text("Enable") }
             }
         })
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+        SectionHeader(icon = Icons.Default.Person, title = "Assurance")
+        if (uiState.assuranceSessionUrl != null) {
+            OutlinedTextField(
+                value = uiState.assuranceSessionUrl,
+                onValueChange = {},
+                enabled = false,
+                label = { Text("Session URL") },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        clipboardManager.setText(AnnotatedString(uiState.assuranceSessionUrl))
+                    }) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy session URL")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            var assuranceUrl by remember { mutableStateOf("") }
+            OutlinedTextField(
+                value = assuranceUrl,
+                onValueChange = { assuranceUrl = it },
+                label = { Text("Session URL") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            TextButton(
+                onClick = { if (assuranceUrl.isNotBlank()) onConnectAssurance(assuranceUrl) }
+            ) { Text("Connect") }
+        }
     }
 }
 
