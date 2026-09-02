@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-class LoginPreference @Inject constructor(
+class LoginPreferences @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ){
     val hasChosenGuest: Flow<Boolean> = dataStore.data.map { prefs ->
@@ -20,6 +20,10 @@ class LoginPreference @Inject constructor(
             prefs ->
             prefs[HAS_CHOSEN_GUEST_KEY] = true
         }
+    }
+
+    suspend fun clearChoseGuest() {
+        dataStore.edit { prefs -> prefs[HAS_CHOSEN_GUEST_KEY] = false }
     }
 
     private companion object {
