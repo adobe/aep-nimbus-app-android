@@ -1,17 +1,23 @@
 package com.adobe.marketing.nimbus.viewmodels
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.adobe.marketing.mobile.services.Log
 import com.adobe.marketing.nimbus.datamodels.AppTab
+import com.adobe.marketing.nimbus.repositories.DeepLinkRepository
 import com.adobe.marketing.nimbus.services.AnalyticsService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainTabViewModel @Inject constructor(
-    private val analyticsService: AnalyticsService
+    private val analyticsService: AnalyticsService,
+    private val deepLinkRepository: DeepLinkRepository
 ): ViewModel() {
 
     private val _selectedTab = MutableStateFlow(AppTab.HOME)
@@ -19,6 +25,10 @@ class MainTabViewModel @Inject constructor(
 
     init {
         analyticsService.trackState(AppTab.HOME.name.lowercase())
+        analyticsService.trackAction("home_first_view", null)
+        viewModelScope.launch {
+            deepLinkRepository.navigationRequests.collect { tab -> selectTab(tab) }
+        }
     }
 
     fun selectTab(tab: AppTab) {
