@@ -6,8 +6,11 @@ import com.adobe.marketing.nimbus.datamodels.OffersUiState
 import com.adobe.marketing.nimbus.datamodels.OfferSurface
 import com.adobe.marketing.nimbus.repositories.OffersRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,10 +25,17 @@ class OffersViewModel @Inject constructor(
 
     private val loadedSurfaces = mutableSetOf<OfferSurface>()
 
+    private val _fetchFailed = MutableSharedFlow<Unit>()
+    val fetchFailed: SharedFlow<Unit> = _fetchFailed.asSharedFlow()
+
     fun ensureLoaded(surface: OfferSurface) {
         if (surface in loadedSurfaces) return
         viewModelScope.launch {
-            val cards = this@OffersViewModel.offersRepository.fetchOffers(surface) ?: return@launch
+            val cards = offersRepository.fetchOffers(surface)
+            if (cards == null) {
+                _fetchFailed.emit(Unit)
+                return@launch
+            }
             loadedSurfaces.add(surface)
             _uiState.value = _uiState.value.copy(
                 offersBySurface = _uiState.value.offersBySurface + (surface to cards)

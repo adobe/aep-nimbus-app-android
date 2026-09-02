@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CardGiftcard
@@ -47,15 +48,20 @@ import com.adobe.marketing.nimbus.datamodels.ShopCategory
 import com.adobe.marketing.nimbus.datamodels.ShopUiState
 import com.adobe.marketing.nimbus.utils.asPrice
 import com.adobe.marketing.nimbus.viewmodels.ShopViewModel
-import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.core.net.toUri
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import com.adobe.marketing.nimbus.datamodels.Offer
 import com.adobe.marketing.nimbus.utils.toOfferSurface
 import com.adobe.marketing.nimbus.viewmodels.OffersViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopScreen(
     onProceedToCart: () -> Unit = {},
@@ -72,25 +78,32 @@ fun ShopScreen(
     val heroCard by remember(surface) { derivedStateOf { offersState.value.offersBySurface[surface]?.firstOrNull()} }
     val context = LocalContext.current
 
-    ShopContent(
-        uiState = uiState,
-        heroCard = heroCard,
-        onHeroCardTap = { card ->
-            offersViewModel.onCardInteracted(card.id)
-            card.actionUrl?.let { url ->
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                } catch (_: ActivityNotFoundException) {
-                    // No app can handle this URL - ignore.
+    OfferFetchFailureToast(offersViewModel.fetchFailed)
+
+    PullToRefreshBox(
+        isRefreshing = offersState.value.isRefreshing,
+        onRefresh = { offersViewModel.refresh(surface) }
+    ) {
+        ShopContent(
+            uiState = uiState,
+            heroCard = heroCard,
+            onHeroCardTap = { card ->
+                offersViewModel.onCardInteracted(card.id)
+                card.actionUrl?.let { url ->
+                    try {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                    } catch (_: ActivityNotFoundException) {
+                        // No app can handle this URL - ignore.
+                    }
                 }
-            }
-        },
-        onHeroCardDisplayed = { offersViewModel.onCardDisplayed(it.id) },
-        onSelectCategory = viewModel::selectCategory,
-        onIncrement = viewModel::increment,
-        onDecrement = viewModel::decrement,
-        onProceedToCart = onProceedToCart
-    )
+            },
+            onHeroCardDisplayed = { offersViewModel.onCardDisplayed(it.id) },
+            onSelectCategory = viewModel::selectCategory,
+            onIncrement = viewModel::increment,
+            onDecrement = viewModel::decrement,
+            onProceedToCart = onProceedToCart
+        )
+    }
 }
 
 @Composable
@@ -134,7 +147,8 @@ private fun ShopContent(
 }
 
 @Composable
-private fun ShopHeroBanner(card: Offer, onTap: () -> Unit, onDisplayed: () -> Unit) {
+private fun ShopHeroBanner(card: Offer, onTap: () -> Unit, onDisplayed: () ->
+Unit) {
     TrackedContentCard(
         card = card,
         onTap = onTap,
@@ -143,15 +157,17 @@ private fun ShopHeroBanner(card: Offer, onTap: () -> Unit, onDisplayed: () -> Un
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment =
             Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Campaign,
+            AsyncImage(
+                model = card.imageUrl,
                 contentDescription = null,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text(card.title, style =
-                    MaterialTheme.typography.titleMedium)
+                Text(card.title, style = MaterialTheme.typography.titleMedium)
                 Text(card.body, style = MaterialTheme.typography.bodySmall)
             }
         }

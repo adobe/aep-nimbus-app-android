@@ -39,7 +39,7 @@ class ShopViewModel @Inject constructor(
     fun increment(product: Product) {
         cart[product.id] = (cart[product.id] ?: 0) + 1
         fire(CommerceEventType.PRODUCT_LIST_ADDS, product)
-        analyticsService.trackAction("add-to-cart", mapOf("sku" to product.sku))
+        analyticsService.trackAction("add-to-cart", mapOf("sku" to product.sku, "cartSubtotal" to "%.2f".format(subtotal())))
         _uiState.value = buildUiState()
     }
 

@@ -6,6 +6,7 @@ import com.adobe.marketing.mobile.Messaging
 import com.adobe.marketing.mobile.MessagingEdgeEventType
 import com.adobe.marketing.mobile.messaging.Proposition
 import com.adobe.marketing.mobile.messaging.PropositionItem
+import com.adobe.marketing.mobile.messaging.SchemaType
 import com.adobe.marketing.mobile.messaging.Surface
 import com.adobe.marketing.mobile.services.Log
 import com.adobe.marketing.nimbus.datamodels.Offer
@@ -17,7 +18,7 @@ import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
-class AepMessagingService @Inject constructor(): MessagingService {
+class AepMessagingService @Inject constructor() : MessagingService {
 
     private val retainedItems = ConcurrentHashMap<String, PropositionItem>()
     private val fetchMutexes = mutableMapOf<OfferSurface, Mutex>()
@@ -27,7 +28,11 @@ class AepMessagingService @Inject constructor(): MessagingService {
             val sdkSurface = Surface(surface.path)
             suspendCancellableCoroutine { continuation ->
                 Messaging.updatePropositionsForSurfaces(listOf(sdkSurface)) { success ->
-                    Log.debug("Nimbus", "AepMessagingService", "updatePropositionsForSurfaces surface=${surface.path} success=$success")
+                    Log.debug(
+                        "Nimbus",
+                        "AepMessagingService",
+                        "updatePropositionsForSurfaces surface=${surface.path} success=$success"
+                    )
                     if (success != true) {
                         continuation.resume(null)
                         return@updatePropositionsForSurfaces
@@ -45,11 +50,14 @@ class AepMessagingService @Inject constructor(): MessagingService {
                             }
 
                             override fun fail(error: AdobeError?) {
-                                Log.debug("Nimbus", "AepMessagingService", "getPropositionsForSurfaces surface=${surface.path} failed: $error")
+                                Log.debug(
+                                    "Nimbus",
+                                    "AepMessagingService",
+                                    "getPropositionsForSurfaces surface=${surface.path} failed: $error"
+                                )
                                 continuation.resume(null)
                             }
-                        }
-                    )
+                        })
                 }
             }
         }
@@ -63,13 +71,22 @@ class AepMessagingService @Inject constructor(): MessagingService {
     }
 
     private fun PropositionItem.toOffer(): Offer? {
-        val content = itemData["content"] as? Map<*, *> ?: return null
-        val title = (content["title"] as? Map<*, *>)?.get("content") as? String ?: return null
+        val content = when (schema) {
+            SchemaType.CONTENT_CARD -> itemData["content"] as? Map<*, *>
+            SchemaType.JSON_CONTENT -> (itemData["content"] as? Map<*, *>)?.get("content")
+                    as? Map<*, *>
+            else -> null
+        } ?: return null
+
+        val title = (content["title"] as? Map<*, *>)?.get("content") as? String ?: ""
         val body = (content["body"] as? Map<*, *>)?.get("content") as? String ?: ""
         val imageUrl = (content["image"] as? Map<*, *>)?.get("url") as? String
-        val actionUrl = content["actionUrl"] as? String
+        val actionUrl = (content["actionUrl"] as? String)?.takeIf { it.isNotBlank() }
+        val dismissStyle = (content["dismissBtn"] as? Map<*, *>)?.get("style") as? String
+        val dismissible = dismissStyle != null && dismissStyle != "none"
 
         retainedItems[itemId] = this
-        return Offer(id = itemId, title = title, body = body, imageUrl = imageUrl, actionUrl = actionUrl)
+        return Offer(id = itemId, title = title, body = body, imageUrl = imageUrl, actionUrl
+        = actionUrl, dismissible = dismissible)
     }
 }

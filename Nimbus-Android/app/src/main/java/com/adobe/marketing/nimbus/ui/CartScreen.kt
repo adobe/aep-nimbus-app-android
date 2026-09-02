@@ -38,16 +38,51 @@ import com.adobe.marketing.nimbus.datamodels.Product
 import com.adobe.marketing.nimbus.datamodels.ShopUiState
 import com.adobe.marketing.nimbus.utils.asPrice
 import com.adobe.marketing.nimbus.viewmodels.ShopViewModel
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import coil3.compose.AsyncImage
+import com.adobe.marketing.nimbus.datamodels.Offer
+import com.adobe.marketing.nimbus.datamodels.OfferSurface
+import com.adobe.marketing.nimbus.viewmodels.OffersViewModel
 
 @Composable
 fun CartScreen(
     onShopNow: () -> Unit = {},
-    viewModel: ShopViewModel = hiltViewModel()
+    viewModel: ShopViewModel = hiltViewModel(),
+    offersViewModel: OffersViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    LaunchedEffect(Unit) {
+        offersViewModel.refresh(OfferSurface.CART)
+    }
+    val offersState = offersViewModel.uiState.collectAsStateWithLifecycle()
+    val cartOffer by remember { derivedStateOf {
+        offersState.value.offersBySurface[OfferSurface.CART]?.firstOrNull() } }
+    val context = LocalContext.current
+
     CartContent(
         uiState = uiState,
+        cartOffer = cartOffer,
+        onOfferTap = { offer ->
+            offersViewModel.onCardInteracted(offer.id)
+            offer.actionUrl?.let { url ->
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                } catch (_: ActivityNotFoundException) { }
+            }
+        },
+        onOfferDisplayed = { offersViewModel.onCardDisplayed(it.id) },
+        onOfferDismiss = { offersViewModel.onCardDismissed(OfferSurface.CART, it.id) },
         onIncrement = viewModel::increment,
         onDecrement = viewModel::decrement,
         onCheckout = viewModel::checkout,
@@ -55,15 +90,28 @@ fun CartScreen(
     )
 }
 
+
 @Composable
 private fun CartContent(
     uiState: ShopUiState,
+    cartOffer: Offer?,
+    onOfferTap: (Offer) -> Unit,
+    onOfferDisplayed: (Offer) -> Unit,
+    onOfferDismiss: (Offer) -> Unit,
     onIncrement: (Product) -> Unit,
     onDecrement: (Product) -> Unit,
     onCheckout: () -> Unit,
     onShopNow: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
+        cartOffer?.let { offer ->
+            CartOfferBanner(
+                offer = offer,
+                onTap = { onOfferTap(offer) },
+                onDisplayed = { onOfferDisplayed(offer) },
+                onDismiss = { onOfferDismiss(offer) }
+            )
+        }
         if (uiState.cartLines.isEmpty()) {
             EmptyCartState(onShopNow = onShopNow)
         } else {
@@ -121,6 +169,39 @@ private fun EmptyCartState(onShopNow: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onShopNow) {
             Text("Shop now")
+        }
+    }
+}
+
+@Composable
+private fun CartOfferBanner(offer: Offer, onTap: () -> Unit, onDisplayed: () -> Unit,
+                            onDismiss: () -> Unit) {
+    Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        TrackedContentCard(
+            card = offer,
+            onTap = onTap,
+            onDisplayed = onDisplayed,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                AsyncImage(
+                    model = offer.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxWidth().height(120.dp),
+                    contentScale = ContentScale.Crop
+                )
+                Text(
+                    offer.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+        if (offer.dismissible) {
+            IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd))
+            {
+                Icon(Icons.Default.Close, contentDescription = "Dismiss")
+            }
         }
     }
 }

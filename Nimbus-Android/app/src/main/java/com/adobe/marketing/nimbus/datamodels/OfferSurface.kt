@@ -3,6 +3,7 @@ package com.adobe.marketing.nimbus.datamodels
 enum class OfferSurface(val path: String) {
     HOME("home"),
     INBOX("inbox"),
+    CART("cart"),
     SHOP_ALL("shop_all"),
     SHOP_APPAREL("shop_apparel"),
     SHOP_ACCESSORIES("shop_accessories"),

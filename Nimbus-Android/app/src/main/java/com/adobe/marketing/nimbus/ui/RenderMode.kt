@@ -1,4 +1,6 @@
 package com.adobe.marketing.nimbus.ui
 
-class RenderMode {
+enum class RenderMode (val label: String) {
+    CUSTOM("Custom"),
+    SDK_UI("SDK UI")
 }
