@@ -6,6 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
     id("org.jetbrains.kotlin.kapt")
+    id("com.google.gms.google-services")
 }
 
 val localProperties = Properties().apply {
@@ -85,6 +86,9 @@ dependencies {
     implementation("com.adobe.marketing.mobile:lifecycle:3.0.1")
     implementation("com.adobe.marketing.mobile:assurance:3.0.7")
     implementation("com.adobe.marketing.mobile:messaging:3.12.0")
+
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
+    implementation("com.google.firebase:firebase-messaging")
 
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")

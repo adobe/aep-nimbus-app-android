@@ -2,7 +2,9 @@ package com.adobe.marketing.nimbus.ui
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,16 +13,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,15 +45,20 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 import com.adobe.marketing.mobile.aepcomposeui.InboxEvent
 import com.adobe.marketing.mobile.aepcomposeui.UIEvent
 import com.adobe.marketing.mobile.aepcomposeui.components.AepInbox
 import com.adobe.marketing.mobile.aepcomposeui.observers.AepInboxEventObserver
 import com.adobe.marketing.mobile.aepcomposeui.state.InboxUIState
+import com.adobe.marketing.mobile.aepcomposeui.style.AepCardStyle
+import com.adobe.marketing.mobile.aepcomposeui.style.AepImageStyle
+import com.adobe.marketing.mobile.aepcomposeui.style.AepUIStyle
+import com.adobe.marketing.mobile.aepcomposeui.style.ImageOnlyUIStyle
+import com.adobe.marketing.mobile.aepcomposeui.style.LargeImageUIStyle
+import com.adobe.marketing.mobile.aepcomposeui.style.SmallImageUIStyle
 import com.adobe.marketing.mobile.messaging.MessagingInboxProvider
 import com.adobe.marketing.mobile.messaging.Surface
-import com.adobe.marketing.mobile.services.Log
 import com.adobe.marketing.nimbus.datamodels.Offer
 import com.adobe.marketing.nimbus.datamodels.OfferSurface
 import com.adobe.marketing.nimbus.viewmodels.OffersViewModel
@@ -119,40 +127,28 @@ fun InboxScreen(viewModel: OffersViewModel = hiltViewModel()) {
                 val inboxUiFlow = remember(inboxProvider) { inboxProvider.getInboxUI() }
                 val uiState by inboxUiFlow.collectAsStateWithLifecycle(initialValue = InboxUIState.Loading)
 
-                AepInbox(
-                    uiState = uiState,
-                    observer = object : AepInboxEventObserver {
-                        override fun onInboxEvent(event: InboxEvent) {
-                            if (event is InboxEvent.Display) {
-                                Log.debug(
-                                    "Nimbus", "InboxScreen", "SDK UI inbox displayed "
-                                )
-                            }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AepInbox(
+                        uiState = uiState,
+                        itemsStyle = AepUIStyle(
+                            smallImageUIStyle = SmallImageUIStyle.Builder()
+                                .cardStyle(AepCardStyle(modifier = Modifier.fillMaxWidth()))
+                                .build(),
+                            largeImageUIStyle = LargeImageUIStyle.Builder()
+                                .cardStyle(AepCardStyle(modifier = Modifier.fillMaxWidth()))
+                                .imageStyle(AepImageStyle(modifier = Modifier.fillMaxWidth()))
+                                .build(),
+                            imageOnlyUIStyle = ImageOnlyUIStyle.Builder()
+                                .cardStyle(AepCardStyle(modifier = Modifier.fillMaxWidth()))
+                                .imageStyle(AepImageStyle(modifier = Modifier.fillMaxWidth()))
+                                .build()
+                        ),
+                        observer = object : AepInboxEventObserver {
+                            override fun onInboxEvent(event: InboxEvent) {}
+                            override fun onEvent(event: UIEvent<*, *>) {}
                         }
-
-                        override fun onEvent(event: UIEvent<*, *>) {
-                            when (event) {
-                                is UIEvent.Display -> Log.debug(
-                                    "Nimbus",
-                                    "InboxScreen",
-                                    "SDK UI card displayed: ${event.aepUi.getTemplate().id}"
-                                )
-
-                                is UIEvent.Interact -> Log.debug(
-                                    "Nimbus",
-                                    "InboxScreen",
-                                    "SDK UI card interacted: ${event.aepUi.getTemplate().id}"
-                                )
-
-                                is UIEvent.Dismiss -> Log.debug(
-                                    "Nimbus",
-                                    "InboxScreen",
-                                    "SDK UI card dismissed: ${event.aepUi.getTemplate().id}"
-                                )
-                            }
-                        }
-                    }
-                )
+                    )
+                }
             }
         }
     }
@@ -165,7 +161,9 @@ private fun InboxContent(
     onCardDisplayed: (Offer) -> Unit,
     onDismiss: (Offer) -> Unit
 ) {
-    if (cards.isEmpty()) {
+    val validCards = cards.filter { it.title.isNotBlank() || it.body.isNotBlank() || !it.imageUrl.isNullOrBlank() }
+
+    if (validCards.isEmpty()) {
         EmptyInboxState()
         return
     }
@@ -175,7 +173,7 @@ private fun InboxContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(cards, key = { it.id }) { card ->
+        items(validCards, key = { it.id }) { card ->
             InboxCard(
                 card = card,
                 onTap = { onCardTap(card) },
@@ -219,49 +217,61 @@ private fun InboxCard(
     TrackedContentCard(
         card = card, onTap = onTap, onDisplayed = onDisplayed, modifier = Modifier.fillMaxWidth()
     ) {
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                if (!card.imageUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = card.imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp)
-                            .clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
+        Column(modifier = Modifier.padding(16.dp)) {
+            if (!card.imageUrl.isNullOrBlank()) {
+                SubcomposeAsyncImage(
+                    model = card.imageUrl,
+                    contentDescription = card.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop,
+                    error = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(140.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BrokenImage,
+                                contentDescription = "Image failed to load",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            if (card.title.isNotBlank()) {
                 Text(
                     text = card.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+            }
+            if (card.body.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = card.body,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text(
-                            text = "Dismiss",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        text = "Dismiss",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }

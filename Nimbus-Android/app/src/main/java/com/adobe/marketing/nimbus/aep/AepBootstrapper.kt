@@ -11,7 +11,6 @@ import com.adobe.marketing.mobile.edge.consent.Consent
 import com.adobe.marketing.mobile.edge.identity.Identity
 import com.adobe.marketing.mobile.Messaging
 import com.adobe.marketing.mobile.messaging.Surface
-import com.adobe.marketing.mobile.services.Log
 import com.adobe.marketing.nimbus.datamodels.OfferSurface
 
 object AepBootstrapper {
@@ -45,8 +44,6 @@ object AepBootstrapper {
 
     private fun prefetchAllSurfaces() {
         val surfaces = OfferSurface.entries.map { Surface(it.path) }
-        Messaging.updatePropositionsForSurfaces(surfaces) { success ->
-            Log.debug("Nimbus", "AepBootstrapper", "prefetchAllSurfaces success=$success")
-        }
+        Messaging.updatePropositionsForSurfaces(surfaces) {}
     }
 }

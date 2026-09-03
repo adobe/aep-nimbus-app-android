@@ -6,9 +6,7 @@ import com.adobe.marketing.mobile.Messaging
 import com.adobe.marketing.mobile.MessagingEdgeEventType
 import com.adobe.marketing.mobile.messaging.Proposition
 import com.adobe.marketing.mobile.messaging.PropositionItem
-import com.adobe.marketing.mobile.messaging.SchemaType
 import com.adobe.marketing.mobile.messaging.Surface
-import com.adobe.marketing.mobile.services.Log
 import com.adobe.marketing.nimbus.datamodels.Offer
 import com.adobe.marketing.nimbus.datamodels.OfferSurface
 import kotlin.coroutines.resume
@@ -28,11 +26,6 @@ class AepMessagingService @Inject constructor() : MessagingService {
             val sdkSurface = Surface(surface.path)
             suspendCancellableCoroutine { continuation ->
                 Messaging.updatePropositionsForSurfaces(listOf(sdkSurface)) { success ->
-                    Log.debug(
-                        "Nimbus",
-                        "AepMessagingService",
-                        "updatePropositionsForSurfaces surface=${surface.path} success=$success"
-                    )
                     if (success != true) {
                         continuation.resume(null)
                         return@updatePropositionsForSurfaces
@@ -46,20 +39,10 @@ class AepMessagingService @Inject constructor() : MessagingService {
                                 val cards = propositions.flatMap { proposition ->
                                     proposition.items.mapNotNull { it.toOffer() }
                                 }
-                                Log.debug(
-                                    "Nimbus",
-                                    "AepMessagingService",
-                                    "Fetched ${cards.size} offers for surface=${surface.path}"
-                                )
                                 continuation.resume(cards)
                             }
 
                             override fun fail(error: AdobeError?) {
-                                Log.debug(
-                                    "Nimbus",
-                                    "AepMessagingService",
-                                    "getPropositionsForSurfaces surface=${surface.path} failed: $error"
-                                )
                                 continuation.resume(null)
                             }
                         })
@@ -76,37 +59,48 @@ class AepMessagingService @Inject constructor() : MessagingService {
     }
 
     private fun PropositionItem.toOffer(): Offer? {
-        val content = when (schema) {
-            SchemaType.CONTENT_CARD -> itemData["content"] as? Map<*, *>
-            SchemaType.JSON_CONTENT -> (itemData["content"] as? Map<*, *>)?.get("content") as? Map<*, *>
-                ?: itemData["content"] as? Map<*, *>
+        val rawContent = itemData["content"]
+        val content: Map<*, *> = when (rawContent) {
+            is Map<*, *> -> (rawContent["content"] as? Map<*, *>)
+                ?: (rawContent["data"] as? Map<*, *>)
+                ?: rawContent
             else -> itemData
-        } ?: return null
+        }
 
         val title = extractText(content["title"])
             .ifBlank { extractText(content["headline"]) }
+            .ifBlank { extractText(content["header"]) }
             .ifBlank { extractText(itemData["title"]) }
+
         val body = extractText(content["body"])
             .ifBlank { extractText(content["description"]) }
+            .ifBlank { extractText(content["text"]) }
             .ifBlank { extractText(itemData["body"]) }
+
         val imageUrl = extractUrl(content["image"])
             ?: extractUrl(content["imageUrl"])
             ?: extractUrl(content["img"])
             ?: extractUrl(content["media"])
+            ?: extractUrl(content["asset"])
+            ?: extractUrl(content["banner"])
+            ?: extractUrl(content["src"])
+            ?: extractUrl(content["url"])
             ?: extractUrl(itemData["image"])
             ?: extractUrl(itemData["imageUrl"])
+            ?: extractUrl(itemData["media"])
+
         val actionUrl = extractUrl(content["actionUrl"])
             ?: extractUrl(content["action"])
             ?: extractUrl(content["cta"])
+            ?: extractUrl(content["link"])
             ?: extractUrl(itemData["actionUrl"])
+
         val dismissStyle = (content["dismissBtn"] as? Map<*, *>)?.get("style") as? String
         val dismissible = dismissStyle != null && dismissStyle != "none"
 
-        Log.debug(
-            "Nimbus",
-            "AepMessagingService",
-            "toOffer itemId=$itemId title='$title' imageUrl='$imageUrl'"
-        )
+        if (title.isBlank() && body.isBlank() && imageUrl.isNullOrBlank()) {
+            return null
+        }
 
         retainedItems[itemId] = this
         return Offer(
@@ -129,12 +123,12 @@ class AepMessagingService @Inject constructor() : MessagingService {
 
     private fun extractUrl(obj: Any?): String? {
         return when (obj) {
-            is String -> obj.takeIf { it.isNotBlank() }
+            is String -> obj.takeIf { it.isNotBlank() && (it.startsWith("http://") || it.startsWith("https://") || it.startsWith("data:")) }
             is Map<*, *> -> {
-                val candidate = obj["url"] ?: obj["src"] ?: obj["uri"] ?: obj["content"] ?: obj["href"]
+                val candidate = obj["url"] ?: obj["src"] ?: obj["uri"] ?: obj["content"] ?: obj["href"] ?: obj["path"]
                 when (candidate) {
-                    is String -> candidate.takeIf { it.isNotBlank() }
-                    is Map<*, *> -> (candidate["url"] ?: candidate["src"]) as? String
+                    is String -> candidate.takeIf { it.isNotBlank() && (it.startsWith("http://") || it.startsWith("https://") || it.startsWith("data:")) }
+                    is Map<*, *> -> extractUrl(candidate)
                     else -> null
                 }
             }
