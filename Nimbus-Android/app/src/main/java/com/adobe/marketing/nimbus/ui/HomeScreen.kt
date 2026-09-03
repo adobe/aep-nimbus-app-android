@@ -66,7 +66,6 @@ import com.adobe.marketing.mobile.aepcomposeui.style.LargeImageUIStyle
 import com.adobe.marketing.mobile.aepcomposeui.style.SmallImageUIStyle
 import com.adobe.marketing.mobile.messaging.ContentCardUIProvider
 import com.adobe.marketing.mobile.messaging.Surface as SdkSurface
-import com.adobe.marketing.mobile.services.Log
 import com.adobe.marketing.nimbus.datamodels.Offer
 import com.adobe.marketing.nimbus.datamodels.OfferSurface
 import com.adobe.marketing.nimbus.datamodels.ShopCategory
@@ -141,27 +140,7 @@ fun HomeScreen(
 
                     val observer = remember {
                         object : AepUIEventObserver {
-                            override fun onEvent(event: UIEvent<*, *>) {
-                                when (event) {
-                                    is UIEvent.Display -> Log.debug(
-                                        "Nimbus",
-                                        "HomeScreen",
-                                        "SDK UI card displayed: ${event.aepUi.getTemplate().id}"
-                                    )
-
-                                    is UIEvent.Interact -> Log.debug(
-                                        "Nimbus",
-                                        "HomeScreen",
-                                        "SDK UI card interacted: ${event.aepUi.getTemplate().id}"
-                                    )
-
-                                    is UIEvent.Dismiss -> Log.debug(
-                                        "Nimbus",
-                                        "HomeScreen",
-                                        "SDK UI card dismissed: ${event.aepUi.getTemplate().id}"
-                                    )
-                                }
-                            }
+                            override fun onEvent(event: UIEvent<*, *>) {}
                         }
                     }
 

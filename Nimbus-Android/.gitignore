@@ -15,3 +15,4 @@ CLAUDE.md
 .externalNativeBuild
 .cxx
 *.hprof
+app/google-services.json

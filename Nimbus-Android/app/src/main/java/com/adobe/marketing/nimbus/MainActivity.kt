@@ -9,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.adobe.marketing.mobile.Assurance
-import com.adobe.marketing.mobile.services.Log
 import com.adobe.marketing.nimbus.datamodels.AppTab
 import com.adobe.marketing.nimbus.repositories.AssuranceRepository
 import com.adobe.marketing.nimbus.repositories.DeepLinkRepository
@@ -57,9 +56,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleNavigationDeepLink(intent: Intent) {
-        val uri = intent.data
-        Log.debug("Nimbus", "MainActivity", "handleNavigationDeepLink uri=$uri scheme=${uri?.scheme} host=${uri?.host}")
-        if (uri == null) return
+        val uri = intent.data ?: return
         if (uri.scheme != "nimbus") return
         val tab = when (uri.host) {
             "home" -> AppTab.HOME
@@ -68,7 +65,6 @@ class MainActivity : ComponentActivity() {
             "inbox" -> AppTab.INBOX
             else -> return
         }
-        Log.debug("Nimbus", "MainActivity", "requesting navigation to $tab via deepLinkRepository=$deepLinkRepository")
         deepLinkRepository.requestNavigation(tab)
     }
 
