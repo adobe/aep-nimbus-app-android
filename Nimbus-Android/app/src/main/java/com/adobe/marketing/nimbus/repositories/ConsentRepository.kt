@@ -16,7 +16,11 @@ class ConsentRepository @Inject constructor(
         consentPreferences.consentState,
         consentPreferences.hasChosenConsent
     ) { consent, hasChosen ->
-        ConsentGateState(consent, hasChosen)
+        ConsentGateState(
+            consent = consent,
+            hasChosenConsent = hasChosen,
+            isLoading = false
+        )
     }
 
     suspend fun chooseConsent(state: ConsentState) {

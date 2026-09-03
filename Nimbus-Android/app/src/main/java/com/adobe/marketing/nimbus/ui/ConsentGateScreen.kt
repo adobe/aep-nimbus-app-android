@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
@@ -63,7 +62,6 @@ fun ConsentGateContent(
         Spacer(modifier = Modifier.weight(1f))
         Button(
             onClick = onAccept,
-            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
@@ -73,7 +71,6 @@ fun ConsentGateContent(
         Spacer(modifier = Modifier.height(10.dp))
         OutlinedButton(
             onClick = onDecline,
-            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)

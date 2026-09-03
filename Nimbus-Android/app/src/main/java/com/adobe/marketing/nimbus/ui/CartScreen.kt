@@ -169,8 +169,7 @@ private fun CartContent(
                         onClick = onCheckout,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp)
+                            .height(50.dp)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -219,8 +218,7 @@ private fun EmptyCartState(onShopNow: () -> Unit) {
         Spacer(modifier = Modifier.height(28.dp))
         Button(
             onClick = onShopNow,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.height(46.dp)
+            modifier = Modifier.height(48.dp)
         ) {
             Text(
                 text = "Start Shopping",

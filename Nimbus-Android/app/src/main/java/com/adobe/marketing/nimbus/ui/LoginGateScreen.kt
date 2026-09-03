@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
@@ -71,7 +70,6 @@ private fun LoginGateContent(
         Button(
             onClick = { onLogin(username) },
             enabled = username.isNotBlank(),
-            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
@@ -81,7 +79,6 @@ private fun LoginGateContent(
         Spacer(modifier = Modifier.height(10.dp))
         OutlinedButton(
             onClick = onContinueAsGuest,
-            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)

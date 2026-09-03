@@ -20,7 +20,7 @@ class ConsentViewModel @Inject constructor(
     val uiState: StateFlow<ConsentGateState> = consentRepository.consentGateState.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ConsentGateState(ConsentState.PENDING, false)
+        initialValue = ConsentGateState(consent = ConsentState.PENDING, hasChosenConsent = false, isLoading = true)
     )
 
     fun onConsentChosen(state: ConsentState) {

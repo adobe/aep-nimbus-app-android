@@ -21,8 +21,8 @@ fun NimbusRootScreen (
     val loginState by loginViewModel.uiState.collectAsStateWithLifecycle()
 
     when {
+        consentState.isLoading || loginState.isChecking -> LoadingScreen()
         !consentState.hasChosenConsent -> ConsentGateScreen(viewModel = consentViewModel)
-        loginState.isChecking -> LoadingScreen()
         !loginState.hasSeenLoginPrompt -> LoginGateScreen(viewModel = loginViewModel)
         else -> NimbusMainScaffold()
     }
