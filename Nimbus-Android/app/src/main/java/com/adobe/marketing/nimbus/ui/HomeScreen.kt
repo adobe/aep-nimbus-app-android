@@ -2,10 +2,13 @@ package com.adobe.marketing.nimbus.ui
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,11 +18,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -31,8 +39,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,7 +61,7 @@ import com.adobe.marketing.mobile.aepcomposeui.style.ImageOnlyUIStyle
 import com.adobe.marketing.mobile.aepcomposeui.style.LargeImageUIStyle
 import com.adobe.marketing.mobile.aepcomposeui.style.SmallImageUIStyle
 import com.adobe.marketing.mobile.messaging.ContentCardUIProvider
-import com.adobe.marketing.mobile.messaging.Surface
+import com.adobe.marketing.mobile.messaging.Surface as SdkSurface
 import com.adobe.marketing.mobile.services.Log
 import com.adobe.marketing.nimbus.datamodels.Offer
 import com.adobe.marketing.nimbus.datamodels.OfferSurface
@@ -66,7 +77,7 @@ fun HomeScreen(
     onNavigateToShop: () -> Unit = {}
 ) {
     var mode by remember { mutableStateOf(RenderMode.SDK_UI) }
-    val ccUiProvider = remember { ContentCardUIProvider(Surface(OfferSurface.HOME.path)) }
+    val ccUiProvider = remember { ContentCardUIProvider(SdkSurface(OfferSurface.HOME.path)) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     OfferFetchFailureToast(viewModel.fetchFailed)
@@ -80,24 +91,37 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .padding(bottom = 24.dp)
         ) {
             HomeHeader()
+
+            Text(
+                text = "Quick Categories",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+            )
             QuickShopCategoriesRow(onCategoryTap = { category ->
                 shopViewModel.selectCategory(category)
                 onNavigateToShop()
             })
 
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
-                text = "Offers for you",
+                text = "Offers for You",
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp)
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
             )
+
             RenderModeSelector(mode = mode, onModeSelected = { mode = it })
 
             Text(
-                text = if (mode == RenderMode.SDK_UI) "Default (ContentCardUIProvider)" else "Custom example",
+                text = if (mode == RenderMode.SDK_UI) "Default (ContentCardUIProvider)" else "Custom Example",
                 style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
             )
 
             when (mode) {
@@ -138,7 +162,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(uiResult.getOrNull().orEmpty(), key = { it.getTemplate().id }) { aepUI ->
-                            Box(modifier = Modifier.width(220.dp)) {
+                            Box(modifier = Modifier.width(230.dp)) {
                                 when (aepUI) {
                                     is SmallImageUI -> SmallImageCard(
                                         aepUI, SmallImageUIStyle.Builder().build(), observer
@@ -204,9 +228,17 @@ private fun HomeContent(
                     ContentCardTile(
                         card = card,
                         onTap = { onCardTap(card) },
-                        onDisplayed = { onCardDisplayed(card) })
+                        onDisplayed = { onCardDisplayed(card) }
+                    )
                 }
             }
+        } else {
+            Text(
+                text = "No custom offers available right now.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+            )
         }
     }
 }
@@ -216,26 +248,35 @@ private fun ContentCardTile(
     card: Offer, onTap: () -> Unit, onDisplayed: () -> Unit
 ) {
     TrackedContentCard(
-        card = card, onTap = onTap, onDisplayed = onDisplayed, modifier = Modifier.width(220.dp)
+        card = card, onTap = onTap, onDisplayed = onDisplayed, modifier = Modifier.width(230.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            AsyncImage(
-                model = card.imageUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                contentScale = ContentScale.Crop
-            )
+        Column(modifier = Modifier.padding(12.dp)) {
+            if (!card.imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = card.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(125.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
             Text(
                 text = card.title,
                 style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.padding(top = 8.dp)
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = card.body,
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp)
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -243,11 +284,41 @@ private fun ContentCardTile(
 
 @Composable
 private fun HomeHeader() {
-    Text(
-        text = "Welcome to Nimbus",
-        style = MaterialTheme.typography.headlineSmall,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Cloud,
+                contentDescription = "Nimbus Logo",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Welcome to Nimbus",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "Discover personalized offers & shop top items",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 @Composable
@@ -257,21 +328,35 @@ private fun QuickShopCategoriesRow(onCategoryTap: (ShopCategory) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(ShopCategory.entries) { category ->
-            Card(onClick = { onCategoryTap(category) }) {
+            OutlinedCard(
+                onClick = { onCategoryTap(category) },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.outlinedCardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)
                 ) {
-                    Icon(
-                        imageVector = category.icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = category.icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = category.displayName,
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(top = 8.dp)
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }

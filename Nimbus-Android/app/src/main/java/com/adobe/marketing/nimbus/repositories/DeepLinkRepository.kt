@@ -9,7 +9,7 @@ import javax.inject.Singleton
 
 @Singleton
 class DeepLinkRepository @Inject constructor() {
-    private val _navigationRequests = MutableSharedFlow<AppTab>(extraBufferCapacity = 1)
+    private val _navigationRequests = MutableSharedFlow<AppTab>(replay = 1, extraBufferCapacity = 1)
     val navigationRequests: SharedFlow<AppTab> = _navigationRequests.asSharedFlow()
 
     fun requestNavigation(tab: AppTab) {

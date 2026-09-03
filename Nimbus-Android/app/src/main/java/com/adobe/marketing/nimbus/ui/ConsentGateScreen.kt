@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -26,8 +28,8 @@ fun ConsentGateScreen(
     viewModel: ConsentViewModel = hiltViewModel()
 ) {
     ConsentGateContent(
-        onAccept = {viewModel.onConsentChosen(ConsentState.YES)},
-        onDecline = {viewModel.onConsentChosen(ConsentState.NO)}
+        onAccept = { viewModel.onConsentChosen(ConsentState.YES) },
+        onDecline = { viewModel.onConsentChosen(ConsentState.NO) }
     )
 }
 
@@ -44,32 +46,46 @@ fun ConsentGateContent(
     ) {
         Spacer(modifier = Modifier.height(64.dp))
         GateIconBadge(icon = Icons.Default.Lock)
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(28.dp))
         Text(
             text = "Help us personalise your experience",
             style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "We'd like to collect data to improve your shopping experience. You can change this anytime.",
+            text = "We'd like to collect data to improve your shopping experience. You can change this anytime in your settings.",
             style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.weight(1f))
-        Button(onClick = onAccept, modifier = Modifier.fillMaxWidth()) {
-            Text("Allow")
+        Button(
+            onClick = onAccept,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+        ) {
+            Text("Allow", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedButton(onClick = onDecline, modifier = Modifier.fillMaxWidth()) {
-            Text("Don't Allow")
+        Spacer(modifier = Modifier.height(10.dp))
+        OutlinedButton(
+            onClick = onDecline,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+        ) {
+            Text("Don't Allow", style = MaterialTheme.typography.titleSmall)
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Nimbus never collects data without your permission.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            textAlign = TextAlign.Center
         )
     }
 }

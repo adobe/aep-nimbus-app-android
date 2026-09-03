@@ -14,6 +14,7 @@ import com.adobe.marketing.nimbus.datamodels.AppTab
 import com.adobe.marketing.nimbus.repositories.AssuranceRepository
 import com.adobe.marketing.nimbus.repositories.DeepLinkRepository
 import com.adobe.marketing.nimbus.ui.NimbusRootScreen
+import com.adobe.marketing.nimbus.ui.theme.NimbusTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -28,8 +29,11 @@ class MainActivity : ComponentActivity() {
         if (!handleAssuranceDeepLink(intent)) autoConnectAssurance()
         handleNavigationDeepLink(intent)
         setContent {
-            MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
+            NimbusTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
                     NimbusRootScreen()
                 }
             }

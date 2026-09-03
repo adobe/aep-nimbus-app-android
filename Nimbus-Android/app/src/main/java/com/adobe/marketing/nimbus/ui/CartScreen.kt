@@ -1,58 +1,62 @@
 package com.adobe.marketing.nimbus.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.adobe.marketing.nimbus.datamodels.CartLine
+import com.adobe.marketing.nimbus.datamodels.Offer
+import com.adobe.marketing.nimbus.datamodels.OfferSurface
 import com.adobe.marketing.nimbus.datamodels.Product
 import com.adobe.marketing.nimbus.datamodels.ShopUiState
 import com.adobe.marketing.nimbus.utils.asPrice
-import com.adobe.marketing.nimbus.viewmodels.ShopViewModel
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.IconButton
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.net.toUri
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import coil3.compose.AsyncImage
-import com.adobe.marketing.nimbus.datamodels.Offer
-import com.adobe.marketing.nimbus.datamodels.OfferSurface
 import com.adobe.marketing.nimbus.viewmodels.OffersViewModel
+import com.adobe.marketing.nimbus.viewmodels.ShopViewModel
 
 @Composable
 fun CartScreen(
@@ -66,8 +70,9 @@ fun CartScreen(
         offersViewModel.refresh(OfferSurface.CART)
     }
     val offersState = offersViewModel.uiState.collectAsStateWithLifecycle()
-    val cartOffer by remember { derivedStateOf {
-        offersState.value.offersBySurface[OfferSurface.CART]?.firstOrNull() } }
+    val cartOffer by remember {
+        derivedStateOf { offersState.value.offersBySurface[OfferSurface.CART]?.firstOrNull() }
+    }
     val context = LocalContext.current
 
     CartContent(
@@ -90,7 +95,6 @@ fun CartScreen(
     )
 }
 
-
 @Composable
 private fun CartContent(
     uiState: ShopUiState,
@@ -104,6 +108,13 @@ private fun CartContent(
     onShopNow: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = "Shopping Cart",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+        )
+
         cartOffer?.let { offer ->
             CartOfferBanner(
                 offer = offer,
@@ -112,6 +123,7 @@ private fun CartContent(
                 onDismiss = { onOfferDismiss(offer) }
             )
         }
+
         if (uiState.cartLines.isEmpty()) {
             EmptyCartState(onShopNow = onShopNow)
         } else {
@@ -120,7 +132,7 @@ private fun CartContent(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(uiState.cartLines) { line ->
+                items(uiState.cartLines, key = { it.product.id }) { line ->
                     CartLineRow(
                         line = line,
                         onIncrement = { onIncrement(line.product) },
@@ -128,21 +140,53 @@ private fun CartContent(
                     )
                 }
             }
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement =
-                    Arrangement.SpaceBetween) {
-                    Text("Subtotal", style = MaterialTheme.typography.bodyMedium)
-                    Text(uiState.subtotal.asPrice(), style =
-                        MaterialTheme.typography.bodyMedium)
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(onClick = onCheckout, modifier = Modifier.fillMaxWidth()) {
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                shadowElevation = 8.dp
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Checkout")
-                        Text(uiState.subtotal.asPrice())
+                        Text(
+                            text = "Total",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = uiState.subtotal.asPrice(),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onCheckout,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Checkout",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = uiState.subtotal.asPrice(),
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                        }
                     }
                 }
             }
@@ -153,30 +197,52 @@ private fun CartContent(
 @Composable
 private fun EmptyCartState(onShopNow: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         GateIconBadge(icon = Icons.Default.ShoppingCart)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "Your cart is empty", style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = "Your cart is empty",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Looks like you haven't added anything yet.",
+            text = "Explore our shop to add items to your cart.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onShopNow) {
-            Text("Shop now")
+        Spacer(modifier = Modifier.height(28.dp))
+        Button(
+            onClick = onShopNow,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.height(46.dp)
+        ) {
+            Text(
+                text = "Start Shopping",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
 
 @Composable
-private fun CartOfferBanner(offer: Offer, onTap: () -> Unit, onDisplayed: () -> Unit,
-                            onDismiss: () -> Unit) {
-    Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+private fun CartOfferBanner(
+    offer: Offer,
+    onTap: () -> Unit,
+    onDisplayed: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+    ) {
         TrackedContentCard(
             card = offer,
             onTap = onTap,
@@ -184,23 +250,43 @@ private fun CartOfferBanner(offer: Offer, onTap: () -> Unit, onDisplayed: () -> 
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
-                AsyncImage(
-                    model = offer.imageUrl,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
-                    contentScale = ContentScale.Crop
-                )
+                if (!offer.imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = offer.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(110.dp)
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
                 Text(
-                    offer.title,
+                    text = offer.title,
                     style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(16.dp)
                 )
             }
         }
         if (offer.dismissible) {
-            IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd))
-            {
-                Icon(Icons.Default.Close, contentDescription = "Dismiss")
+            Box(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .align(Alignment.TopEnd)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), CircleShape)
+            ) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Dismiss",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
@@ -212,30 +298,40 @@ private fun CartLineRow(
     onIncrement: () -> Unit,
     onDecrement: () -> Unit
 ) {
-    Card(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation =
-            2.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(horizontal =
-                16.dp, vertical = 12.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
-            Icon(
-                imageVector = line.product.category.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(32.dp)
+            AsyncImage(
+                model = line.product.imageUrl,
+                contentDescription = line.product.name,
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = line.product.name, style =
-                    MaterialTheme.typography.titleMedium)
+                Text(
+                    text = line.product.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = line.product.price.asPrice(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
                 )
             }
             QuantityStepper(
@@ -254,10 +350,15 @@ private fun QuantityStepper(
     onDecrement: () -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        FilledTonalIconButton(onClick = onDecrement, modifier =
-            Modifier.size(32.dp)) {
-            Icon(imageVector = Icons.Default.Remove,
-                contentDescription = "Remove one")
+        FilledTonalIconButton(
+            onClick = onDecrement,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Remove,
+                contentDescription = "Remove one",
+                modifier = Modifier.size(16.dp)
+            )
         }
         Surface(
             shape = RoundedCornerShape(8.dp),
@@ -266,15 +367,20 @@ private fun QuantityStepper(
         ) {
             Text(
                 text = quantity.toString(),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(horizontal = 12.dp,
-                    vertical = 4.dp)
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
             )
         }
-        FilledTonalIconButton(onClick = onIncrement, modifier =
-            Modifier.size(32.dp)) {
-            Icon(imageVector = Icons.Default.Add, contentDescription =
-                "Add one")
+        FilledTonalIconButton(
+            onClick = onIncrement,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add one",
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }
