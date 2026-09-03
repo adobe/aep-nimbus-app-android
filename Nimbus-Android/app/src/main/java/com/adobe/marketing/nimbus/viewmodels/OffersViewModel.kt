@@ -36,7 +36,9 @@ class OffersViewModel @Inject constructor(
                 _fetchFailed.emit(Unit)
                 return@launch
             }
-            loadedSurfaces.add(surface)
+            if (cards.isNotEmpty()) {
+                loadedSurfaces.add(surface)
+            }
             _uiState.value = _uiState.value.copy(
                 offersBySurface = _uiState.value.offersBySurface + (surface to cards)
             )

@@ -46,6 +46,11 @@ class AepMessagingService @Inject constructor() : MessagingService {
                                 val cards = propositions.flatMap { proposition ->
                                     proposition.items.mapNotNull { it.toOffer() }
                                 }
+                                Log.debug(
+                                    "Nimbus",
+                                    "AepMessagingService",
+                                    "Fetched ${cards.size} offers for surface=${surface.path}"
+                                )
                                 continuation.resume(cards)
                             }
 
@@ -73,20 +78,67 @@ class AepMessagingService @Inject constructor() : MessagingService {
     private fun PropositionItem.toOffer(): Offer? {
         val content = when (schema) {
             SchemaType.CONTENT_CARD -> itemData["content"] as? Map<*, *>
-            SchemaType.JSON_CONTENT -> (itemData["content"] as? Map<*, *>)?.get("content")
-                    as? Map<*, *>
-            else -> null
+            SchemaType.JSON_CONTENT -> (itemData["content"] as? Map<*, *>)?.get("content") as? Map<*, *>
+                ?: itemData["content"] as? Map<*, *>
+            else -> itemData
         } ?: return null
 
-        val title = (content["title"] as? Map<*, *>)?.get("content") as? String ?: ""
-        val body = (content["body"] as? Map<*, *>)?.get("content") as? String ?: ""
-        val imageUrl = (content["image"] as? Map<*, *>)?.get("url") as? String
-        val actionUrl = (content["actionUrl"] as? String)?.takeIf { it.isNotBlank() }
+        val title = extractText(content["title"])
+            .ifBlank { extractText(content["headline"]) }
+            .ifBlank { extractText(itemData["title"]) }
+        val body = extractText(content["body"])
+            .ifBlank { extractText(content["description"]) }
+            .ifBlank { extractText(itemData["body"]) }
+        val imageUrl = extractUrl(content["image"])
+            ?: extractUrl(content["imageUrl"])
+            ?: extractUrl(content["img"])
+            ?: extractUrl(content["media"])
+            ?: extractUrl(itemData["image"])
+            ?: extractUrl(itemData["imageUrl"])
+        val actionUrl = extractUrl(content["actionUrl"])
+            ?: extractUrl(content["action"])
+            ?: extractUrl(content["cta"])
+            ?: extractUrl(itemData["actionUrl"])
         val dismissStyle = (content["dismissBtn"] as? Map<*, *>)?.get("style") as? String
         val dismissible = dismissStyle != null && dismissStyle != "none"
 
+        Log.debug(
+            "Nimbus",
+            "AepMessagingService",
+            "toOffer itemId=$itemId title='$title' imageUrl='$imageUrl'"
+        )
+
         retainedItems[itemId] = this
-        return Offer(id = itemId, title = title, body = body, imageUrl = imageUrl, actionUrl
-        = actionUrl, dismissible = dismissible)
+        return Offer(
+            id = itemId,
+            title = title,
+            body = body,
+            imageUrl = imageUrl,
+            actionUrl = actionUrl,
+            dismissible = dismissible
+        )
+    }
+
+    private fun extractText(obj: Any?): String {
+        return when (obj) {
+            is String -> obj
+            is Map<*, *> -> (obj["content"] ?: obj["text"] ?: obj["value"]) as? String ?: ""
+            else -> ""
+        }
+    }
+
+    private fun extractUrl(obj: Any?): String? {
+        return when (obj) {
+            is String -> obj.takeIf { it.isNotBlank() }
+            is Map<*, *> -> {
+                val candidate = obj["url"] ?: obj["src"] ?: obj["uri"] ?: obj["content"] ?: obj["href"]
+                when (candidate) {
+                    is String -> candidate.takeIf { it.isNotBlank() }
+                    is Map<*, *> -> (candidate["url"] ?: candidate["src"]) as? String
+                    else -> null
+                }
+            }
+            else -> null
+        }
     }
 }
