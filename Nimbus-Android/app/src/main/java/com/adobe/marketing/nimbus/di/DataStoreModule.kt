@@ -15,12 +15,35 @@ private val Context.consentDataStore: DataStore<Preferences> by preferencesDataS
     name = "consent_preferences"
 )
 
+private val Context.optimizeDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "optimize_preferences"
+)
+
+private val Context.loginDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "login_preferences"
+)
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DataStoreModule {
 
     @Provides
     @Singleton
+    @ConsentDataStore
     fun provideConsentDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
         context.consentDataStore
+
+    @Provides
+    @Singleton
+    @LoginDataStore
+    fun provideLoginDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+        context.loginDataStore
+
+    @Provides
+    @Singleton
+    @OptimizeDataStore
+    fun provideOptimizeDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+        context.optimizeDataStore
+
+
 }

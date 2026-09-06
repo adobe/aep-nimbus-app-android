@@ -124,6 +124,7 @@ fun NimbusMainScaffold(
                 when (targetTab) {
                     AppTab.HOME -> HomeScreen(
                         onNavigateToShop = { viewModel.selectTab(AppTab.SHOP) },
+                        onProceedToCart = { viewModel.selectTab(AppTab.CART) },
                         shopViewModel = shopViewModel
                     )
                     AppTab.SHOP -> ShopScreen(

@@ -4,16 +4,19 @@ import com.adobe.marketing.nimbus.services.AepAnalyticsService
 import com.adobe.marketing.nimbus.services.AepConsentService
 import com.adobe.marketing.nimbus.services.AepIdentityService
 import com.adobe.marketing.nimbus.services.AepMessagingService
+import com.adobe.marketing.nimbus.services.AepPersonalizationService
 import com.adobe.marketing.nimbus.services.AnalyticsService
 import com.adobe.marketing.nimbus.services.AndroidNotificationService
 import com.adobe.marketing.nimbus.services.ConsentService
 import com.adobe.marketing.nimbus.services.IdentityService
 import com.adobe.marketing.nimbus.services.MessagingService
 import com.adobe.marketing.nimbus.services.NotificationService
+import com.adobe.marketing.nimbus.services.PersonalizationService
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -23,7 +26,7 @@ abstract class ServiceModule {
     abstract fun bindIdentityService(impl: AepIdentityService): IdentityService
 
     @Binds
-    abstract fun bindConsentservice(impl: AepConsentService): ConsentService
+    abstract fun bindConsentService(impl: AepConsentService): ConsentService
 
     @Binds
     abstract fun bindAnalyticsService(impl: AepAnalyticsService): AnalyticsService
@@ -33,4 +36,8 @@ abstract class ServiceModule {
 
     @Binds
     abstract fun bindNotificationService(impl: AndroidNotificationService): NotificationService
+
+    @Binds
+    @Singleton
+    abstract fun bindPersonalizationService(impl: AepPersonalizationService): PersonalizationService
 }

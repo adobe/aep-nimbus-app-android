@@ -348,7 +348,7 @@ private fun ProductTile(
 }
 
 @Composable
-private fun ShopCartBar(
+fun ShopCartBar(
     count: Int,
     subtotal: Double,
     onProceedToCart: () -> Unit

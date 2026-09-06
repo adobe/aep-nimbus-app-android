@@ -4,12 +4,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import com.adobe.marketing.nimbus.di.LoginDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class LoginPreferences @Inject constructor(
-    private val dataStore: DataStore<Preferences>
+    @LoginDataStore private val dataStore: DataStore<Preferences>
 ){
     val hasChosenGuest: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[HAS_CHOSEN_GUEST_KEY] ?: false

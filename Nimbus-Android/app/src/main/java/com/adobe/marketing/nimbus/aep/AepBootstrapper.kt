@@ -7,6 +7,7 @@ import com.adobe.marketing.mobile.edge.bridge.EdgeBridge
 import com.adobe.marketing.mobile.Lifecycle
 import com.adobe.marketing.mobile.LoggingMode
 import com.adobe.marketing.mobile.MobileCore
+import com.adobe.marketing.mobile.optimize.Optimize
 import com.adobe.marketing.mobile.edge.consent.Consent
 import com.adobe.marketing.mobile.edge.identity.Identity
 import com.adobe.marketing.mobile.Messaging
@@ -26,7 +27,8 @@ object AepBootstrapper {
             Lifecycle.EXTENSION,
             Assurance.EXTENSION,
             Messaging.EXTENSION,
-            EdgeBridge.EXTENSION
+            EdgeBridge.EXTENSION,
+            Optimize.EXTENSION
         )
         MobileCore.registerExtensions(extensions) {
             MobileCore.configureWithAppID(AepConfig.APP_ID)

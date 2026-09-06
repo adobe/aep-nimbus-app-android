@@ -9,11 +9,14 @@ import com.adobe.marketing.nimbus.repositories.AssuranceRepository
 import com.adobe.marketing.nimbus.repositories.ConsentRepository
 import com.adobe.marketing.nimbus.repositories.LoginRepository
 import com.adobe.marketing.nimbus.repositories.NotificationRepository
+import com.adobe.marketing.nimbus.repositories.PersonalizationRepository
 import com.adobe.marketing.nimbus.services.NotificationEnableAction
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,11 +25,15 @@ class ProfileViewModel @Inject constructor(
     private val consentRepository: ConsentRepository,
     private val loginRepository: LoginRepository,
     private val notificationRepository: NotificationRepository,
-    private val assuranceRepository: AssuranceRepository
+    private val assuranceRepository: AssuranceRepository,
+    private val personalizationRepository: PersonalizationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+
+    private val decisionScopeInput = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    private val targetActivityInput = MutableSharedFlow<String>(extraBufferCapacity = 1)
 
     init {
         viewModelScope.launch {
@@ -47,6 +54,30 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             assuranceRepository.sessionUrl.collect { url ->
                 _uiState.value = _uiState.value.copy(assuranceSessionUrl = url)
+            }
+        }
+        viewModelScope.launch {
+            personalizationRepository.offers.collect { offers ->
+                _uiState.value = _uiState.value.copy(personalizedOffers = offers)
+            }
+        }
+        viewModelScope.launch {
+            personalizationRepository.scopeConfig.collect { config ->
+                _uiState.value = _uiState.value.copy(
+                    decisionScopeName = config.decisionScopeName,
+                    targetActivityName = config.targetActivityName
+                )
+            }
+        }
+
+        viewModelScope.launch {
+            decisionScopeInput.debounce(300).collect { name ->
+                personalizationRepository.setDecisionScope(name)
+            }
+        }
+        viewModelScope.launch {
+            targetActivityInput.debounce(300).collect { name ->
+                personalizationRepository.setTargetActivity(name)
             }
         }
     }
@@ -73,5 +104,29 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {  loginRepository.login(username) }
     }
 
-    fun notificationEnableAction(): NotificationEnableAction = notificationRepository.notificationEnableAction()
+    fun notificationEnableAction(): NotificationEnableAction =
+        notificationRepository.notificationEnableAction()
+
+    fun setDecisionScopeName(name: String) {
+        _uiState.value = _uiState.value.copy(decisionScopeName = name)
+        decisionScopeInput.tryEmit(name)
+    }
+
+    fun setTargetActivityName(name: String) {
+        _uiState.value = _uiState.value.copy(targetActivityName = name)
+        targetActivityInput.tryEmit(name)
+    }
+
+    fun fetchPersonalizedOffers() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isFetchingOffers = true)
+            val state = _uiState.value
+            personalizationRepository.refreshOffers(state.decisionScopeName, state.targetActivityName)
+            _uiState.value = _uiState.value.copy(isFetchingOffers = false)
+        }
+    }
+
+    fun onOfferDisplayed(offerId: String) = personalizationRepository.trackOfferDisplayed(offerId)
+
+    fun onOfferTapped(offerId: String) = personalizationRepository.trackOfferTapped(offerId)
 }

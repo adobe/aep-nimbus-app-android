@@ -7,6 +7,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,13 +20,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Loyalty
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,6 +42,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +61,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adobe.marketing.nimbus.datamodels.ConsentState
+import com.adobe.marketing.nimbus.datamodels.PersonalizedOffer
 import com.adobe.marketing.nimbus.datamodels.ProfileUiState
 import com.adobe.marketing.nimbus.services.NotificationEnableAction
 import com.adobe.marketing.nimbus.utils.truncatedEcid
@@ -105,7 +111,12 @@ fun ProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
                 )
             }
         },
-        onConnectAssurance = viewModel::connectAssurance
+        onConnectAssurance = viewModel::connectAssurance,
+        onDecisionScopeChange = viewModel::setDecisionScopeName,
+        onTargetActivityChange = viewModel::setTargetActivityName,
+        onFetchOffers = viewModel::fetchPersonalizedOffers,
+        onOfferDisplayed = viewModel::onOfferDisplayed,
+        onOfferTapped = viewModel::onOfferTapped
     )
 }
 
@@ -116,7 +127,12 @@ private fun ProfileContent(
     onLogin: (String) -> Unit,
     onLogout: () -> Unit,
     onEnableNotifications: () -> Unit,
-    onConnectAssurance: (String) -> Unit
+    onConnectAssurance: (String) -> Unit,
+    onDecisionScopeChange: (String) -> Unit,
+    onTargetActivityChange: (String) -> Unit,
+    onFetchOffers: () -> Unit,
+    onOfferDisplayed: (String) -> Unit,
+    onOfferTapped: (String) -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
 
@@ -265,8 +281,115 @@ private fun ProfileContent(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Profile Attributes Section
+        SectionCard(icon = Icons.Default.Loyalty, title = "Profile") {
+            ListItem(
+                headlineContent = { Text("Loyalty Tier", fontWeight = FontWeight.SemiBold) },
+                supportingContent = { Text(uiState.profileAttributes.loyaltyTier) }
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            ListItem(
+                headlineContent = { Text("Member Since", fontWeight = FontWeight.SemiBold) },
+                supportingContent = { Text(uiState.profileAttributes.memberSince) }
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            ListItem(
+                headlineContent = { Text("Lifetime Purchases", fontWeight = FontWeight.SemiBold) },
+                supportingContent = { Text(uiState.profileAttributes.lifetimePurchases.toString()) }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Personalized Offers Section
+        SectionCard(icon = Icons.Default.AutoAwesome, title = "Personalized Offers") {
+            Column(modifier = Modifier.padding(16.dp)) {
+                OutlinedTextField(
+                    value = uiState.decisionScopeName,
+                    onValueChange = onDecisionScopeChange,
+                    label = { Text("Decision Scope") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = uiState.targetActivityName,
+                    onValueChange = onTargetActivityChange,
+                    label = { Text("Target Activity") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Button(
+                    onClick = onFetchOffers,
+                    enabled = !uiState.isFetchingOffers &&
+                        (uiState.decisionScopeName.isNotBlank() || uiState.targetActivityName.isNotBlank()),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (uiState.isFetchingOffers) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Fetch Offers")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Personalized · Offer Decisioning",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OfferGroup(
+                    offers = uiState.personalizedOffers.offerDecisioning,
+                    onOfferDisplayed = onOfferDisplayed,
+                    onOfferTapped = onOfferTapped
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    "Personalized · Adobe Target",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OfferGroup(
+                    offers = uiState.personalizedOffers.target,
+                    onOfferDisplayed = onOfferDisplayed,
+                    onOfferTapped = onOfferTapped
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
     }
+}
+
+@Composable
+private fun OfferGroup(
+    offers: List<PersonalizedOffer>,
+    onOfferDisplayed: (String) -> Unit,
+    onOfferTapped: (String) -> Unit
+) {
+    if (offers.isEmpty()) {
+        Text(
+            "No offers to show",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+        return
+    }
+
+    PersonalizedOfferRow(
+        offers = offers,
+        onDisplayed = onOfferDisplayed,
+        onTapped = onOfferTapped,
+        contentPadding = PaddingValues(top = 4.dp)
+    )
 }
 
 @Composable

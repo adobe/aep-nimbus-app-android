@@ -68,8 +68,10 @@ import com.adobe.marketing.mobile.messaging.ContentCardUIProvider
 import com.adobe.marketing.mobile.messaging.Surface as SdkSurface
 import com.adobe.marketing.nimbus.datamodels.Offer
 import com.adobe.marketing.nimbus.datamodels.OfferSurface
+import com.adobe.marketing.nimbus.datamodels.PersonalizedOffers
 import com.adobe.marketing.nimbus.datamodels.ShopCategory
 import com.adobe.marketing.nimbus.viewmodels.OffersViewModel
+import com.adobe.marketing.nimbus.viewmodels.PersonalizationViewModel
 import com.adobe.marketing.nimbus.viewmodels.ShopViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,121 +79,156 @@ import com.adobe.marketing.nimbus.viewmodels.ShopViewModel
 fun HomeScreen(
     viewModel: OffersViewModel = hiltViewModel(),
     shopViewModel: ShopViewModel = hiltViewModel(),
-    onNavigateToShop: () -> Unit = {}
+    personalizationViewModel: PersonalizationViewModel = hiltViewModel(),
+    onNavigateToShop: () -> Unit = {},
+    onProceedToCart: () -> Unit = {}
 ) {
     var mode by remember { mutableStateOf(RenderMode.SDK_UI) }
     val ccUiProvider = remember { ContentCardUIProvider(SdkSurface(OfferSurface.HOME.path)) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val personalizedOffers by personalizationViewModel.offers.collectAsStateWithLifecycle()
+    val shopUiState by shopViewModel.uiState.collectAsStateWithLifecycle()
 
     OfferFetchFailureToast(viewModel.fetchFailed)
 
+    LaunchedEffect(Unit) { personalizationViewModel.refresh() }
+
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
-        onRefresh = { viewModel.refresh(OfferSurface.HOME) },
+        onRefresh = {
+            viewModel.refresh(OfferSurface.HOME)
+            personalizationViewModel.refresh()
+        },
         modifier = Modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp)
-        ) {
-            HomeHeader()
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = if (shopUiState.cartCount > 0) 80.dp else 24.dp)
+            ) {
+                HomeHeader()
 
-            HomeHeroCard(onExploreShop = onNavigateToShop)
+                HomeHeroCard(onExploreShop = onNavigateToShop)
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = "Quick Categories",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
-            )
-            QuickShopCategoriesRow(onCategoryTap = { category ->
-                shopViewModel.selectCategory(category)
-                onNavigateToShop()
-            })
+                Text(
+                    text = "Quick Categories",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+                )
+                QuickShopCategoriesRow(onCategoryTap = { category ->
+                    shopViewModel.selectCategory(category)
+                    onNavigateToShop()
+                })
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Offers for You",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
-            )
+                Text(
+                    text = "Recommended for You",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
+                )
+                RecommendedForYouSection(
+                    offers = personalizedOffers,
+                    onOfferDisplayed = personalizationViewModel::onOfferDisplayed,
+                    onOfferTapped = personalizationViewModel::onOfferTapped
+                )
 
-            RenderModeSelector(mode = mode, onModeSelected = { mode = it })
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = if (mode == RenderMode.SDK_UI) "Default (ContentCardUIProvider)" else "Custom Example",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
-            )
+                Text(
+                    text = "Offers for You",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
+                )
 
-            when (mode) {
-                RenderMode.SDK_UI -> {
-                    val ccUiFlow = remember(ccUiProvider) { ccUiProvider.getContentCardUIFlow() }
-                    val uiResult by ccUiFlow.collectAsStateWithLifecycle(
-                        initialValue = Result.success(emptyList())
-                    )
+                RenderModeSelector(mode = mode, onModeSelected = { mode = it })
 
-                    val observer = remember {
-                        object : AepUIEventObserver {
-                            override fun onEvent(event: UIEvent<*, *>) {}
+                Text(
+                    text = if (mode == RenderMode.SDK_UI) "Default (ContentCardUIProvider)" else "Custom Example",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                )
+
+                when (mode) {
+                    RenderMode.SDK_UI -> {
+                        val ccUiFlow = remember(ccUiProvider) { ccUiProvider.getContentCardUIFlow() }
+                        val uiResult by ccUiFlow.collectAsStateWithLifecycle(
+                            initialValue = Result.success(emptyList())
+                        )
+
+                        val observer = remember {
+                            object : AepUIEventObserver {
+                                override fun onEvent(event: UIEvent<*, *>) {}
+                            }
                         }
-                    }
 
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(uiResult.getOrNull().orEmpty(), key = { it.getTemplate().id }) { aepUI ->
-                            Box(modifier = Modifier.width(230.dp)) {
-                                when (aepUI) {
-                                    is SmallImageUI -> SmallImageCard(
-                                        aepUI, SmallImageUIStyle.Builder().build(), observer
-                                    )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(uiResult.getOrNull().orEmpty(), key = { it.getTemplate().id }) { aepUI ->
+                                Box(modifier = Modifier.width(230.dp)) {
+                                    when (aepUI) {
+                                        is SmallImageUI -> SmallImageCard(
+                                            aepUI, SmallImageUIStyle.Builder().build(), observer
+                                        )
 
-                                    is LargeImageUI -> LargeImageCard(
-                                        aepUI, LargeImageUIStyle.Builder().build(), observer
-                                    )
+                                        is LargeImageUI -> LargeImageCard(
+                                            aepUI, LargeImageUIStyle.Builder().build(), observer
+                                        )
 
-                                    is ImageOnlyUI -> ImageOnlyCard(
-                                        aepUI, ImageOnlyUIStyle.Builder().build(), observer
-                                    )
+                                        is ImageOnlyUI -> ImageOnlyCard(
+                                            aepUI, ImageOnlyUIStyle.Builder().build(), observer
+                                        )
+                                    }
                                 }
                             }
                         }
+                    }
+
+                    RenderMode.CUSTOM -> {
+                        LaunchedEffect(Unit) {
+                            viewModel.ensureLoaded(OfferSurface.HOME)
+                        }
+                        val cards by remember {
+                            derivedStateOf {
+                                uiState.offersBySurface[OfferSurface.HOME].orEmpty()
+                            }
+                        }
+                        val context = LocalContext.current
+
+                        HomeContent(
+                            cards = cards,
+                            onCardTap = { card ->
+                                viewModel.onCardInteracted(card.id)
+                                card.actionUrl?.let { url ->
+                                    try {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                                    } catch (_: ActivityNotFoundException) {
+                                        // No app can handle this URL - ignore.
+                                    }
+                                }
+                            },
+                            onCardDisplayed = { viewModel.onCardDisplayed(it.id) }
+                        )
                     }
                 }
+            }
 
-                RenderMode.CUSTOM -> {
-                    LaunchedEffect(Unit) {
-                        viewModel.ensureLoaded(OfferSurface.HOME)
-                    }
-                    val cards by remember {
-                        derivedStateOf {
-                            uiState.offersBySurface[OfferSurface.HOME].orEmpty()
-                        }
-                    }
-                    val context = LocalContext.current
-
-                    HomeContent(
-                        cards = cards,
-                        onCardTap = { card ->
-                            viewModel.onCardInteracted(card.id)
-                            card.actionUrl?.let { url ->
-                                try {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                                } catch (_: ActivityNotFoundException) {
-                                    // No app can handle this URL - ignore.
-                                }
-                            }
-                        },
-                        onCardDisplayed = { viewModel.onCardDisplayed(it.id) }
+            if (shopUiState.cartCount > 0) {
+                Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+                    ShopCartBar(
+                        count = shopUiState.cartCount,
+                        subtotal = shopUiState.subtotal,
+                        onProceedToCart = onProceedToCart
                     )
                 }
             }
@@ -264,6 +301,52 @@ private fun HomeHeroCard(onExploreShop: () -> Unit) {
                     color = Color.White.copy(alpha = 0.85f)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RecommendedForYouSection(
+    offers: PersonalizedOffers,
+    onOfferDisplayed: (String) -> Unit,
+    onOfferTapped: (String) -> Unit
+) {
+    if (offers.offerDecisioning.isEmpty() && offers.target.isEmpty()) {
+        Text(
+            text = "No offers to show — add a decision scope or Target activity in Profile → Personalized Offers.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        return
+    }
+
+    Column {
+        if (offers.offerDecisioning.isNotEmpty()) {
+            Text(
+                text = "Personalized · Offer Decisioning",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)
+            )
+            PersonalizedOfferRow(
+                offers = offers.offerDecisioning,
+                onDisplayed = onOfferDisplayed,
+                onTapped = onOfferTapped
+            )
+        }
+        if (offers.target.isNotEmpty()) {
+            Text(
+                text = "Personalized · Adobe Target",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)
+            )
+            PersonalizedOfferRow(
+                offers = offers.target,
+                onDisplayed = onOfferDisplayed,
+                onTapped = onOfferTapped
+            )
         }
     }
 }
