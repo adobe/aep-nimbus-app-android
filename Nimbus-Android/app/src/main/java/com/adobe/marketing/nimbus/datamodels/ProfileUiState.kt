@@ -7,6 +7,7 @@ data class ProfileUiState (
     val signedInUser: String? = null,
     val consentState: ConsentState = ConsentState.PENDING,
     val pushEnabled: Boolean = false,
+    val pushToken: String? = null,
     val assuranceSessionUrl: String? = null,
 
     val profileAttributes: ProfileAttributes = MockProfile.attributes,

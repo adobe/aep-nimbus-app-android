@@ -239,6 +239,27 @@ private fun ProfileContent(
                     }
                 }
             )
+
+            val pushToken = uiState.pushToken
+            if (pushToken != null) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                Column(modifier = Modifier.padding(16.dp)) {
+                    OutlinedTextField(
+                        value = pushToken,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Push Token (FCM)") },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                clipboardManager.setText(AnnotatedString(pushToken))
+                            }) {
+                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy push token")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
