@@ -14,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,22 +32,22 @@ class ProfileViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val ecid = loginRepository.experienceCloudId()
-            _uiState.value = _uiState.value.copy(ecid = ecid)
+            _uiState.update { it.copy(ecid = ecid) }
         }
         viewModelScope.launch {
             loginRepository.loginGateState.collect {  gateState ->
-                _uiState.value = _uiState.value.copy(signedInUser = gateState.signedInUser)
+                _uiState.update { it.copy(signedInUser = gateState.signedInUser) }
              }
         }
         viewModelScope.launch {
             consentRepository.consentGateState.collect { gateState ->
-                _uiState.value = _uiState.value.copy(consentState = gateState.consent)
+                _uiState.update { it.copy(consentState = gateState.consent) }
             }
         }
         refreshPushState()
         viewModelScope.launch {
             assuranceRepository.sessionUrl.collect { url ->
-                _uiState.value = _uiState.value.copy(assuranceSessionUrl = url)
+                _uiState.update { it.copy(assuranceSessionUrl = url) }
             }
         }
     }
@@ -58,7 +59,11 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun refreshPushState() {
-        _uiState.value = _uiState.value.copy(pushEnabled = notificationRepository.isPushEnabled())
+        _uiState.update { it.copy(pushEnabled = notificationRepository.isPushEnabled()) }
+        viewModelScope.launch {
+            val token = notificationRepository.pushToken()
+            _uiState.update { it.copy(pushToken = token) }
+        }
     }
 
     fun setConsent(state: ConsentState) {
@@ -73,5 +78,6 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {  loginRepository.login(username) }
     }
 
-    fun notificationEnableAction(): NotificationEnableAction = notificationRepository.notificationEnableAction()
+    fun notificationEnableAction(): NotificationEnableAction =
+        notificationRepository.notificationEnableAction()
 }

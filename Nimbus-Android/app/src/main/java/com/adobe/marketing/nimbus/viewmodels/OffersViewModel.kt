@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -39,9 +40,7 @@ class OffersViewModel @Inject constructor(
             if (cards.isNotEmpty()) {
                 loadedSurfaces.add(surface)
             }
-            _uiState.value = _uiState.value.copy(
-                offersBySurface = _uiState.value.offersBySurface + (surface to cards)
-            )
+            _uiState.update { it.copy(offersBySurface = it.offersBySurface + (surface to cards)) }
         }
     }
 
@@ -55,24 +54,24 @@ class OffersViewModel @Inject constructor(
 
     fun onCardDismissed(surface: OfferSurface, cardId: String) {
         this@OffersViewModel.offersRepository.trackDismiss(cardId)
-        _uiState.value = _uiState.value.copy(
-            offersBySurface = _uiState.value.offersBySurface.mapValues { (key, cards) ->
-                if (key == surface) cards.filterNot { it.id == cardId } else cards
-            }
-        )
+        _uiState.update { state ->
+            state.copy(
+                offersBySurface = state.offersBySurface.mapValues { (key, cards) ->
+                    if (key == surface) cards.filterNot { it.id == cardId } else cards
+                }
+            )
+        }
     }
 
     fun refresh(surface: OfferSurface) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true)
+            _uiState.update { it.copy(isRefreshing = true) }
             val cards = offersRepository.fetchOffers(surface)
             if (cards != null) {
                 loadedSurfaces.add(surface)
-                _uiState.value = _uiState.value.copy(
-                    offersBySurface = _uiState.value.offersBySurface + (surface to cards)
-                )
+                _uiState.update { it.copy(offersBySurface = it.offersBySurface + (surface to cards)) }
             }
-            _uiState.value = _uiState.value.copy(isRefreshing = false)
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 }
