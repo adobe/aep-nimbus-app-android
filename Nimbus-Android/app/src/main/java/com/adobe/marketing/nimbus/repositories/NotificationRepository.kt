@@ -10,4 +10,6 @@ class NotificationRepository @Inject constructor(
     fun isPushEnabled(): Boolean = notificationService.isPushEnabled()
 
     fun notificationEnableAction(): NotificationEnableAction = notificationService.notificationEnableAction()
+
+    suspend fun pushToken(): String? = notificationService.pushToken()
 }
