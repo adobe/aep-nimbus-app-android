@@ -13,12 +13,15 @@ import com.adobe.marketing.mobile.edge.identity.Identity
 import com.adobe.marketing.mobile.Messaging
 import com.adobe.marketing.mobile.messaging.Surface
 import com.adobe.marketing.nimbus.datamodels.OfferSurface
+import com.adobe.marketing.mobile.messaging.liveupdate.LiveUpdatePlugin
+import com.adobe.marketing.nimbus.services.NimbusLiveUpdateStyleProvider
 
 object AepBootstrapper {
 
     fun start(application: Application) {
         MobileCore.setApplication(application)
         MobileCore.setLogLevel(LoggingMode.DEBUG)
+        MobileCore.setSmallIconResourceID(android.R.drawable.ic_dialog_info)
 
         val extensions = listOf(
             Edge.EXTENSION,
@@ -34,6 +37,7 @@ object AepBootstrapper {
             MobileCore.configureWithAppID(AepConfig.APP_ID)
             prefetchAllSurfaces()
         }
+        MobileCore.addPlugins(LiveUpdatePlugin(NimbusLiveUpdateStyleProvider(application)))
     }
 
     fun lifecycleStart() {

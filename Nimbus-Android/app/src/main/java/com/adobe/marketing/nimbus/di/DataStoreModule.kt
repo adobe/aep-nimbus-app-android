@@ -23,6 +23,10 @@ private val Context.loginDataStore: DataStore<Preferences> by preferencesDataSto
     name = "login_preferences"
 )
 
+private val Context.liveUpdateDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "live_update_preferences"
+)
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DataStoreModule {
@@ -44,6 +48,12 @@ object DataStoreModule {
     @OptimizeDataStore
     fun provideOptimizeDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
         context.optimizeDataStore
+
+    @Provides
+    @Singleton
+    @LiveUpdateDataStore
+    fun provideLiveUpdateDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+        context.liveUpdateDataStore
 
 
 }

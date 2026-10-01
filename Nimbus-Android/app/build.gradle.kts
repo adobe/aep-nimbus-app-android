@@ -5,7 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
-    id("org.jetbrains.kotlin.kapt")
+    id("com.google.devtools.ksp")
     id("com.google.gms.google-services")
 }
 
@@ -64,7 +64,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("androidx.core:core-ktx:1.16.0")
+    implementation("androidx.core:core-ktx:1.17.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.6")
 
@@ -75,13 +75,14 @@ dependencies {
     implementation("androidx.vectordrawable:vectordrawable-animated:1.2.0")
 
     implementation("com.adobe.marketing.mobile:assurance:3.0.7")
-    implementation("com.adobe.marketing.mobile:core:3.7.0")
+    implementation("com.adobe.marketing.mobile:core:3.10.0")
     implementation("com.adobe.marketing.mobile:edge:3.0.2")
     implementation("com.adobe.marketing.mobile:edgebridge:3.0.1")
     implementation("com.adobe.marketing.mobile:edgeconsent:3.0.3")
     implementation("com.adobe.marketing.mobile:edgeidentity:3.0.1")
     implementation("com.adobe.marketing.mobile:lifecycle:3.0.1")
-    implementation("com.adobe.marketing.mobile:messaging:3.12.0")
+    implementation("com.adobe.marketing.mobile:liveupdates:3.0.0")
+    implementation("com.adobe.marketing.mobile:messaging:3.13.0")
     implementation("com.adobe.marketing.mobile:optimize:2.+")
 
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
@@ -91,10 +92,10 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
 
     implementation("com.google.dagger:hilt-android:2.56.2")
-    kapt("com.google.dagger:hilt-compiler:2.56.2")
+    ksp("com.google.dagger:hilt-compiler:2.56.2")
 
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
-    kapt("androidx.hilt:hilt-compiler:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
