@@ -324,7 +324,7 @@ private fun RecommendedForYouSection(
     Column {
         if (offers.offerDecisioning.isNotEmpty()) {
             Text(
-                text = "Personalized · Offer Decisioning",
+                text = "Personalized | Offer Decisioning",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)
@@ -337,7 +337,7 @@ private fun RecommendedForYouSection(
         }
         if (offers.target.isNotEmpty()) {
             Text(
-                text = "Personalized · Adobe Target",
+                text = "Personalized | Adobe Target",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)

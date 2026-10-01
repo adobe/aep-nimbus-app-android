@@ -16,11 +16,19 @@ import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
+/**
+ * Powered by the AJO Messaging extension's `Messaging.updatePropositionsForSurfaces`/
+ * `getPropositionsForSurfaces` APIs. This is the capability behind every content-card surface
+ * in the app: the Home carousel, Inbox list, Shop's Code-Based-Experience hero banner, and the
+ * Cart triggered offer banner. Each `OfferSurface` maps to an AJO surface path, and the SDK's
+ * own display/interact/dismiss tracking is wired here so campaigns get accurate engagement data.
+ */
 class AepMessagingService @Inject constructor() : MessagingService {
 
     private val retainedItems = ConcurrentHashMap<String, PropositionItem>()
     private val fetchMutexes = mutableMapOf<OfferSurface, Mutex>()
 
+    /** Updates then reads propositions for one surface, mutex-guarded to avoid duplicate fetches. */
     override suspend fun fetchOffers(surface: OfferSurface): List<Offer>? =
         fetchMutexes.getOrPut(surface) { Mutex() }.withLock {
             val sdkSurface = Surface(surface.path)
@@ -50,14 +58,19 @@ class AepMessagingService @Inject constructor() : MessagingService {
             }
         }
 
+    /** Reports a card actually scrolled into view. */
     override fun trackDisplay(cardId: String) = track(cardId, MessagingEdgeEventType.DISPLAY)
+    /** Reports a tap/interaction on a card. */
     override fun trackInteract(cardId: String) = track(cardId, MessagingEdgeEventType.INTERACT)
+    /** Reports a card explicitly dismissed by the user. */
     override fun trackDismiss(cardId: String) = track(cardId, MessagingEdgeEventType.DISMISS)
 
+    /** Looks up the retained SDK item for a card ID and fires the given engagement event. */
     private fun track(cardId: String, eventType: MessagingEdgeEventType) {
         retainedItems[cardId]?.track(eventType)
     }
 
+    /** Parses one PropositionItem's nested content into the app's plain Offer model. */
     private fun PropositionItem.toOffer(): Offer? {
         val rawContent = itemData["content"]
         val content: Map<*, *> = when (rawContent) {
@@ -113,6 +126,7 @@ class AepMessagingService @Inject constructor() : MessagingService {
         )
     }
 
+    /** Pulls a plain string out of a text field that may be a raw String or a nested map. */
     private fun extractText(obj: Any?): String {
         return when (obj) {
             is String -> obj
@@ -121,6 +135,7 @@ class AepMessagingService @Inject constructor() : MessagingService {
         }
     }
 
+    /** Pulls a valid http(s)/data URL out of a field that may be a raw String or a nested map. */
     private fun extractUrl(obj: Any?): String? {
         return when (obj) {
             is String -> obj.takeIf { it.isNotBlank() && (it.startsWith("http://") || it.startsWith("https://") || it.startsWith("data:")) }

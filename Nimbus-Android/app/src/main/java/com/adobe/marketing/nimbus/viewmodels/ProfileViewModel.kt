@@ -21,6 +21,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Powered by five AEP capabilities at once, each behind its own repository: Edge Consent
+ * (data-collection toggle), Edge Identity (ECID, login/logout, Identity Map), push/FCM
+ * (notification permission + token display), Assurance (session connect), and Optimize
+ * (the Personalized Offers dev lab, with its own decision-scope/Target-activity config).
+ * Profile is deliberately the one screen that surfaces every extension's raw, inspectable
+ * state, which is why it aggregates this many repositories instead of splitting further.
+ */
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val consentRepository: ConsentRepository,
@@ -36,6 +44,8 @@ class ProfileViewModel @Inject constructor(
     private val decisionScopeInput = MutableSharedFlow<String>(extraBufferCapacity = 1)
     private val targetActivityInput = MutableSharedFlow<String>(extraBufferCapacity = 1)
 
+    // Seeds every section's initial state and subscribes to each repository's reactive state,
+    // plus debounces the two personalization text fields before persisting them.
     init {
         viewModelScope.launch {
             val ecid = loginRepository.experienceCloudId()
@@ -44,6 +54,7 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             loginRepository.loginGateState.collect {  gateState ->
                 _uiState.update { it.copy(signedInUser = gateState.signedInUser) }
+                refreshIdentityMap()
              }
         }
         viewModelScope.launch {
@@ -85,12 +96,22 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** Re-reads the full Identity Map from Edge Identity, e.g. after login/logout changes it. */
+    private fun refreshIdentityMap() {
+        viewModelScope.launch {
+            val identities = loginRepository.identityMap()
+            _uiState.update { it.copy(identityMap = identities) }
+        }
+    }
+
+    /** Starts an Assurance session for the given URL and records it locally. */
     fun connectAssurance(url: String) {
         if (url.isBlank()) return
         Assurance.startSession(url)
         assuranceRepository.recordSessionStarted(url)
     }
 
+    /** Re-checks OS notification permission state and refetches the current FCM token. */
     fun refreshPushState() {
         _uiState.update { it.copy(pushEnabled = notificationRepository.isPushEnabled()) }
         viewModelScope.launch {
@@ -99,31 +120,38 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** Pushes a new consent choice from the Profile toggle. */
     fun setConsent(state: ConsentState) {
         viewModelScope.launch { consentRepository.chooseConsent(state) }
     }
 
+    /** Logs the current user out, inline, without ever re-showing the login gate. */
     fun logout() {
         viewModelScope.launch { loginRepository.logout() }
     }
 
+    /** Logs in as the given username, inline, without ever re-showing the login gate. */
     fun login(username: String) {
         viewModelScope.launch {  loginRepository.login(username) }
     }
 
+    /** Which enable-notifications UI flow to trigger (permission dialog vs. settings page). */
     fun notificationEnableAction(): NotificationEnableAction =
         notificationRepository.notificationEnableAction()
 
+    /** Updates the decision-scope field instantly and queues its debounced persistence. */
     fun setDecisionScopeName(name: String) {
         _uiState.update { it.copy(decisionScopeName = name) }
         decisionScopeInput.tryEmit(name)
     }
 
+    /** Updates the Target-activity field instantly and queues its debounced persistence. */
     fun setTargetActivityName(name: String) {
         _uiState.update { it.copy(targetActivityName = name) }
         targetActivityInput.tryEmit(name)
     }
 
+    /** Fetches personalized offers using exactly what's currently typed in the fields. */
     fun fetchPersonalizedOffers() {
         viewModelScope.launch {
             _uiState.update { it.copy(isFetchingOffers = true) }
@@ -133,7 +161,9 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** Reports a personalized offer actually scrolled into view. */
     fun onOfferDisplayed(offerId: String) = personalizationRepository.trackOfferDisplayed(offerId)
 
+    /** Reports a tap on a personalized offer. */
     fun onOfferTapped(offerId: String) = personalizationRepository.trackOfferTapped(offerId)
 }

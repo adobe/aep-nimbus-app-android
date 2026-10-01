@@ -12,22 +12,21 @@ import javax.inject.Inject
 class LoginPreferences @Inject constructor(
     @LoginDataStore private val dataStore: DataStore<Preferences>
 ){
-    val hasChosenGuest: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[HAS_CHOSEN_GUEST_KEY] ?: false
+    val hasPassedLoginGate: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[HAS_PASSED_LOGIN_GATE_KEY] ?: false
     }
 
-    suspend fun setChoseGuest() {
-        dataStore.edit {
-            prefs ->
-            prefs[HAS_CHOSEN_GUEST_KEY] = true
+    suspend fun markLoginGatePassed() {
+        dataStore.edit { prefs ->
+            prefs[HAS_PASSED_LOGIN_GATE_KEY] = true
         }
     }
 
-    suspend fun clearChoseGuest() {
-        dataStore.edit { prefs -> prefs[HAS_CHOSEN_GUEST_KEY] = false }
-    }
+//    suspend fun clearChoseGuest() {
+//        dataStore.edit { prefs -> prefs[HAS_CHOSEN_GUEST_KEY] = false }
+//    }
 
     private companion object {
-        val HAS_CHOSEN_GUEST_KEY = booleanPreferencesKey("has_chosen_guest")
+        val HAS_PASSED_LOGIN_GATE_KEY = booleanPreferencesKey("has_passed_login_gate")
     }
 }

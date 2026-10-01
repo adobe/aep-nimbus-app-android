@@ -66,7 +66,10 @@ fun CartScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
+    // Re-fetch whenever the cart's empty/non-empty state flips, not just once per screen
+    // composition, since checkout (which can disqualify AJO campaigns like the cart-abandonment
+    // card) empties the cart without navigating away from this screen.
+    LaunchedEffect(uiState.cartLines.isEmpty()) {
         offersViewModel.refresh(OfferSurface.CART)
     }
     val offersState = offersViewModel.uiState.collectAsStateWithLifecycle()

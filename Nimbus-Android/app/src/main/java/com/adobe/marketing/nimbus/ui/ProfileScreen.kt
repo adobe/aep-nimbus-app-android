@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,12 +22,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Loyalty
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,6 +43,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -64,6 +68,7 @@ import com.adobe.marketing.nimbus.datamodels.ConsentState
 import com.adobe.marketing.nimbus.datamodels.PersonalizedOffer
 import com.adobe.marketing.nimbus.datamodels.ProfileUiState
 import com.adobe.marketing.nimbus.services.NotificationEnableAction
+import com.adobe.marketing.nimbus.utils.toIdentityMapJson
 import com.adobe.marketing.nimbus.utils.truncatedEcid
 import com.adobe.marketing.nimbus.viewmodels.ProfileViewModel
 
@@ -173,27 +178,109 @@ private fun ProfileContent(
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
             if (uiState.signedInUser != null) {
+                var showLogoutConfirm by remember { mutableStateOf(false) }
+
                 ListItem(
                     headlineContent = { Text("Linked Account", fontWeight = FontWeight.SemiBold) },
                     supportingContent = { Text(uiState.signedInUser) },
                     trailingContent = {
-                        OutlinedButton(onClick = onLogout) {
+                        OutlinedButton(onClick = { showLogoutConfirm = true }) {
                             Text("Log Out")
                         }
                     }
                 )
+
+                if (showLogoutConfirm) {
+                    AlertDialog(
+                        onDismissRequest = { showLogoutConfirm = false },
+                        title = { Text("Log out?") },
+                        text = { Text("You'll be signed out of ${uiState.signedInUser} on this device.") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showLogoutConfirm = false
+                                onLogout()
+                            }) {
+                                Text("Log Out")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showLogoutConfirm = false }) {
+                                Text("Cancel")
+                            }
+                        }
+                    )
+                }
             } else {
                 Column(modifier = Modifier.padding(16.dp)) {
                     var username by remember { mutableStateOf("") }
+                    var showLoginConfirm by remember { mutableStateOf(false) }
+
                     EmailField(value = username, onValueChange = { username = it })
                     Spacer(modifier = Modifier.height(10.dp))
                     Button(
-                        onClick = { if (username.isNotBlank()) onLogin(username) },
+                        onClick = { if (username.isNotBlank()) showLoginConfirm = true },
                         enabled = username.isNotBlank(),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Log In")
                     }
+
+                    if (showLoginConfirm) {
+                        AlertDialog(
+                            onDismissRequest = { showLoginConfirm = false },
+                            title = { Text("Log in as $username?") },
+                            text = { Text("You'll be linked to this account for the rest of your session.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    showLoginConfirm = false
+                                    onLogin(username)
+                                }) {
+                                    Text("Log In")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showLoginConfirm = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Identity Map Section
+        SectionCard(icon = Icons.Default.Badge, title = "Identity Map") {
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (uiState.identityMap.isEmpty()) {
+                    Text(
+                        text = "No identities available",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    val identityMapJson = remember(uiState.identityMap) {
+                        uiState.identityMap.toIdentityMapJson()
+                    }
+                    OutlinedTextField(
+                        value = identityMapJson,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("identityMap JSON") },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                clipboardManager.setText(AnnotatedString(identityMapJson))
+                            }) {
+                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy identity map JSON")
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 220.dp)
+                            .verticalScroll(rememberScrollState())
+                    )
                 }
             }
         }
@@ -361,7 +448,7 @@ private fun ProfileContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "Personalized · Offer Decisioning",
+                    "Personalized | Offer Decisioning",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -373,7 +460,7 @@ private fun ProfileContent(
 
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    "Personalized · Adobe Target",
+                    "Personalized | Adobe Target",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

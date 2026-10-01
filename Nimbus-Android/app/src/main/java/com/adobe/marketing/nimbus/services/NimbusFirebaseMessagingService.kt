@@ -47,6 +47,7 @@ class NimbusFirebaseMessagingService : FirebaseMessagingService() {
         MobileCore.setPushIdentifier(token)
     }
 
+    /** Routes an incoming push to the AEP SDK first, falling back to a basic notification. */
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         Log.d(
@@ -75,6 +76,7 @@ class NimbusFirebaseMessagingService : FirebaseMessagingService() {
         showBasicNotification(message)
     }
 
+    /** Builds and posts a plain notification for a non-AJO push, tapping into MainActivity. */
     private fun showBasicNotification(message: RemoteMessage) {
         // POST_NOTIFICATIONS is a runtime permission on Android 13+. If it has not been
         // granted, notify() would be a silent no-op, so skip the work.
@@ -118,6 +120,7 @@ class NimbusFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "showBasicNotification: posted app notification id=$notificationId, title=\"$title\".")
     }
 
+    /** Creates the app's own (non-AJO) notification channel on API 26+, once. */
     private fun ensureChannelExists() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(NotificationManager::class.java) ?: return
