@@ -2,18 +2,29 @@ package com.adobe.marketing.nimbus.data
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.adobe.marketing.nimbus.datamodels.OrderStep
 import com.adobe.marketing.nimbus.datamodels.OrderTrackingState
 import com.adobe.marketing.nimbus.di.LiveUpdateDataStore
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class LiveUpdatePreferences @Inject constructor(
     @LiveUpdateDataStore private val dataStore: DataStore<Preferences>
 ) {
+    val flashSaleOptIn: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[FLASH_SALE_OPT_IN_KEY] ?: false
+    }
+
+    suspend fun setFlashSaleOptIn(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[FLASH_SALE_OPT_IN_KEY] = enabled }
+    }
+
     suspend fun load(): OrderTrackingState? {
         val prefs = dataStore.data.first()
         val orderNumber = prefs[ORDER_NUMBER_KEY] ?: return null
@@ -43,5 +54,6 @@ class LiveUpdatePreferences @Inject constructor(
         val ORDER_NUMBER_KEY = stringPreferencesKey("order_number")
         val STEP_KEY = intPreferencesKey("step")
         val ETA_DAYS_KEY = intPreferencesKey("eta_days")
+        val FLASH_SALE_OPT_IN_KEY = booleanPreferencesKey("flash_sale_opt_in")
     }
 }

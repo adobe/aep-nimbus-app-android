@@ -8,7 +8,9 @@ import com.adobe.marketing.nimbus.services.AepMessagingService
 import com.adobe.marketing.nimbus.services.AepPersonalizationService
 import com.adobe.marketing.nimbus.services.AnalyticsService
 import com.adobe.marketing.nimbus.services.AndroidNotificationService
+import com.adobe.marketing.nimbus.services.BroadcastTopicService
 import com.adobe.marketing.nimbus.services.ConsentService
+import com.adobe.marketing.nimbus.services.FirebaseBroadcastService
 import com.adobe.marketing.nimbus.services.IdentityService
 import com.adobe.marketing.nimbus.services.LiveUpdateService
 import com.adobe.marketing.nimbus.services.MessagingService
@@ -46,4 +48,8 @@ abstract class ServiceModule {
     @Binds
     @Singleton
     abstract fun bindLiveUpdateService(impl: AepLiveUpdateService): LiveUpdateService
+
+    @Binds
+    @Singleton
+    abstract fun bindBroadcastTopicService(impl: FirebaseBroadcastService): BroadcastTopicService
 }

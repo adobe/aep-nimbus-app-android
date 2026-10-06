@@ -80,6 +80,7 @@ fun InboxScreen(viewModel: OffersViewModel = hiltViewModel()) {
         )
 
         LiveUpdateCard()
+        FlashSaleCard()
 
         RenderModeSelector(mode = mode, onModeSelected = { mode = it })
 

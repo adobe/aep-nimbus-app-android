@@ -13,17 +13,23 @@ class NimbusLiveUpdateStyleProvider(
 ) : ILiveUpdateStyleProvider {
 
     override fun provideStyle(payload: LiveUpdatePayload): NotificationCompat.Style? {
-        val order = OrderPayloadParser.parse(payload) ?: return null
-        return NotificationCompat.ProgressStyle()
-            .setProgress(order.step.ordinal * SEGMENT_LENGTH)
-            .setProgressTrackerIcon(
-                IconCompat.createWithResource(context, R.drawable.shipping_truck)
-            )
-            .setProgressSegments(
-                SEGMENT_COLORS.map {
-                    NotificationCompat.ProgressStyle.Segment(SEGMENT_LENGTH).setColor(it)
-                }
-            )
+        OrderPayloadParser.parse(payload)?.let { order ->
+            return NotificationCompat.ProgressStyle()
+                .setProgress(order.step.ordinal * SEGMENT_LENGTH)
+                .setProgressTrackerIcon(
+                    IconCompat.createWithResource(context, R.drawable.shipping_truck)
+                )
+                .setProgressSegments(
+                    SEGMENT_COLORS.map {
+                        NotificationCompat.ProgressStyle.Segment(SEGMENT_LENGTH).setColor(it)
+                    }
+                )
+        }
+        SalePayloadParser.parse(payload)?.let { sale ->
+            return NotificationCompat.BigTextStyle()
+                .bigText("${sale.discountPercent}% off. Today only!")
+        }
+        return null
     }
 
     private companion object {

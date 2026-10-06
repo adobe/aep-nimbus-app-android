@@ -1,5 +1,6 @@
 package com.adobe.marketing.nimbus.services
 
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
@@ -36,8 +37,10 @@ class AepLiveUpdateService @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     init {
+        ensureLiveUpdateChannelsExist()
         LiveUpdates.setLiveUpdateListener(object : ILiveUpdateListener {
             override fun onLiveUpdateReceived(payload: LiveUpdatePayload) {
+                if (SalePayloadParser.isSale(payload)) return
                 if (payload.eventType == LiveUpdatePayload.EVENT_TYPE_END) {
                     _orderState.value = null
                 } else {
@@ -46,6 +49,7 @@ class AepLiveUpdateService @Inject constructor(
             }
 
             override fun onDismissed(payload: LiveUpdatePayload) {
+                if (SalePayloadParser.isSale(payload)) return
                 _orderState.value = null
             }
 
@@ -131,6 +135,30 @@ class AepLiveUpdateService @Inject constructor(
     private fun isNotificationShowing(orderNumber: String): Boolean {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return false
         return manager.activeNotifications.any { it.id == orderNumber.hashCode() }
+    }
+
+    // Pre-creates both Live Update channels with friendly names, so neither falls back
+    // to the SDK's auto-created default label if a remote/local push arrives first.
+    private fun ensureLiveUpdateChannelsExist() {
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        if (manager.getNotificationChannel(CHANNEL_ID) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_ID,
+                    "Order Tracking",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply { description = "Live Updates for order tracking" }
+            )
+        }
+        if (manager.getNotificationChannel(FLASH_SALE_CHANNEL_ID) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    FLASH_SALE_CHANNEL_ID,
+                    "Flash Sale Alerts",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply { description = "Live Updates for flash sale broadcasts" }
+            )
+        }
     }
 
     private companion object {
