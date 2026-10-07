@@ -8,6 +8,7 @@ import com.adobe.marketing.nimbus.datamodels.CommerceEventType
 import com.adobe.marketing.nimbus.datamodels.Product
 import com.adobe.marketing.nimbus.datamodels.ShopCategory
 import com.adobe.marketing.nimbus.datamodels.ShopUiState
+import com.adobe.marketing.nimbus.repositories.LiveUpdateRepository
 import com.adobe.marketing.nimbus.services.AnalyticsService
 import com.adobe.marketing.nimbus.utils.CommerceXdmBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +28,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ShopViewModel @Inject constructor(
-    private val analyticsService: AnalyticsService
+    private val analyticsService: AnalyticsService,
+    private val liveUpdateRepository: LiveUpdateRepository
 ): ViewModel() {
 
     private val cart = mutableMapOf<String, Int>()
@@ -71,6 +73,7 @@ class ShopViewModel @Inject constructor(
 
         analyticsService.track(CommerceEvent(CommerceEventType.PURCHASES, xdm))
         analyticsService.trackAction("order-complete", mapOf("orderTotal" to "%.2f".format(subtotal)))
+        if (liveUpdateRepository.orderState.value == null) liveUpdateRepository.startOrder()
         cart.clear()
         _uiState.update { buildUiState() }
     }
