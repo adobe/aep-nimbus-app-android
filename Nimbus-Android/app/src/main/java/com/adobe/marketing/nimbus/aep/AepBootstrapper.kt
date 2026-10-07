@@ -14,6 +14,7 @@ import com.adobe.marketing.mobile.Messaging
 import com.adobe.marketing.mobile.messaging.Surface
 import com.adobe.marketing.nimbus.datamodels.OfferSurface
 import com.adobe.marketing.mobile.messaging.liveupdate.LiveUpdatePlugin
+import com.adobe.marketing.nimbus.R
 import com.adobe.marketing.nimbus.services.NimbusLiveUpdateStyleProvider
 
 object AepBootstrapper {
@@ -21,7 +22,7 @@ object AepBootstrapper {
     fun start(application: Application) {
         MobileCore.setApplication(application)
         MobileCore.setLogLevel(LoggingMode.DEBUG)
-        MobileCore.setSmallIconResourceID(android.R.drawable.ic_dialog_info)
+        MobileCore.setSmallIconResourceID(R.drawable.shipping_truck)
 
         val extensions = listOf(
             Edge.EXTENSION,

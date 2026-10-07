@@ -108,6 +108,7 @@ class AepLiveUpdateService @Inject constructor(
             title = "Order #$orderNumber",
             timestamp = timestamp,
             body = step.label,
+            criticalText = step.label,
             dismissAfterSeconds = dismissAfterSeconds,
             contentState = OrderPayloadParser.contentState(step, etaDays)
         )
