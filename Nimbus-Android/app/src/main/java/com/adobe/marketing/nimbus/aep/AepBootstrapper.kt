@@ -12,12 +12,17 @@ import com.adobe.marketing.mobile.edge.identity.Identity
 import com.adobe.marketing.mobile.Messaging
 import com.adobe.marketing.mobile.messaging.Surface
 import com.adobe.marketing.nimbus.datamodels.OfferSurface
+import com.adobe.marketing.mobile.messaging.liveupdate.LiveUpdatePlugin
+import com.adobe.marketing.nimbus.R
+import com.adobe.marketing.nimbus.datamodels.OrderStyle
+import com.adobe.marketing.nimbus.services.NimbusLiveUpdateStyleProvider
 
 object AepBootstrapper {
 
-    fun start(application: Application) {
+    fun start(application: Application, currentOrderStyle: () -> OrderStyle?) {
         MobileCore.setApplication(application)
         MobileCore.setLogLevel(LoggingMode.DEBUG)
+        MobileCore.setSmallIconResourceID(R.drawable.shipping_truck)
 
         val extensions = listOf(
             Edge.EXTENSION,
@@ -32,6 +37,9 @@ object AepBootstrapper {
             MobileCore.configureWithAppID(AepConfig.APP_ID)
             prefetchAllSurfaces()
         }
+        MobileCore.addPlugins(
+            LiveUpdatePlugin(NimbusLiveUpdateStyleProvider(application, currentOrderStyle))
+        )
     }
 
     fun lifecycleStart() {

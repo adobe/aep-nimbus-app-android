@@ -79,6 +79,9 @@ fun InboxScreen(viewModel: OffersViewModel = hiltViewModel()) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
         )
 
+        LiveUpdateCard()
+        FlashSaleCard()
+
         RenderModeSelector(mode = mode, onModeSelected = { mode = it })
 
         when (mode) {

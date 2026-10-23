@@ -15,6 +15,10 @@ private val Context.consentDataStore: DataStore<Preferences> by preferencesDataS
     name = "consent_preferences"
 )
 
+private val Context.liveUpdateDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "live_update_preferences"
+)
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DataStoreModule {
@@ -23,4 +27,10 @@ object DataStoreModule {
     @Singleton
     fun provideConsentDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
         context.consentDataStore
+
+    @Provides
+    @Singleton
+    @LiveUpdateDataStore
+    fun provideLiveUpdateDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+        context.liveUpdateDataStore
 }
