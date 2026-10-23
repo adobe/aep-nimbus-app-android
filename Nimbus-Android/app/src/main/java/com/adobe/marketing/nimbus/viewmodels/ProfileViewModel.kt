@@ -9,19 +9,23 @@ import com.adobe.marketing.nimbus.repositories.AssuranceRepository
 import com.adobe.marketing.nimbus.repositories.ConsentRepository
 import com.adobe.marketing.nimbus.repositories.LoginRepository
 import com.adobe.marketing.nimbus.repositories.NotificationRepository
+import com.adobe.marketing.nimbus.repositories.PersonalizationRepository
 import com.adobe.marketing.nimbus.services.NotificationEnableAction
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Powered by four AEP capabilities at once, each behind its own repository: Edge Consent
+ * Powered by five AEP capabilities at once, each behind its own repository: Edge Consent
  * (data-collection toggle), Edge Identity (ECID, login/logout, Identity Map), push/FCM
- * (notification permission + token display), and Assurance (session connect).
+ * (notification permission + token display), Assurance (session connect), and Optimize
+ * (the Personalized Offers dev lab, with its own decision-scope/Target-activity config).
  * Profile is deliberately the one screen that surfaces every extension's raw, inspectable
  * state, which is why it aggregates this many repositories instead of splitting further.
  */
@@ -30,12 +34,18 @@ class ProfileViewModel @Inject constructor(
     private val consentRepository: ConsentRepository,
     private val loginRepository: LoginRepository,
     private val notificationRepository: NotificationRepository,
-    private val assuranceRepository: AssuranceRepository
+    private val assuranceRepository: AssuranceRepository,
+    private val personalizationRepository: PersonalizationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
+    private val decisionScopeInput = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    private val targetActivityInput = MutableSharedFlow<String>(extraBufferCapacity = 1)
+
+    // Seeds every section's initial state and subscribes to each repository's reactive state,
+    // plus debounces the two personalization text fields before persisting them.
     init {
         viewModelScope.launch {
             val ecid = loginRepository.experienceCloudId()
@@ -56,6 +66,32 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             assuranceRepository.sessionUrl.collect { url ->
                 _uiState.update { it.copy(assuranceSessionUrl = url) }
+            }
+        }
+        viewModelScope.launch {
+            personalizationRepository.offers.collect { offers ->
+                _uiState.update { it.copy(personalizedOffers = offers) }
+            }
+        }
+        viewModelScope.launch {
+            personalizationRepository.scopeConfig.collect { config ->
+                _uiState.update {
+                    it.copy(
+                        decisionScopeName = config.decisionScopeName,
+                        targetActivityName = config.targetActivityName
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            decisionScopeInput.debounce(300).collect { name ->
+                personalizationRepository.setDecisionScope(name)
+            }
+        }
+        viewModelScope.launch {
+            targetActivityInput.debounce(300).collect { name ->
+                personalizationRepository.setTargetActivity(name)
             }
         }
     }
@@ -102,4 +138,32 @@ class ProfileViewModel @Inject constructor(
     /** Which enable-notifications UI flow to trigger (permission dialog vs. settings page). */
     fun notificationEnableAction(): NotificationEnableAction =
         notificationRepository.notificationEnableAction()
+
+    /** Updates the decision-scope field instantly and queues its debounced persistence. */
+    fun setDecisionScopeName(name: String) {
+        _uiState.update { it.copy(decisionScopeName = name) }
+        decisionScopeInput.tryEmit(name)
+    }
+
+    /** Updates the Target-activity field instantly and queues its debounced persistence. */
+    fun setTargetActivityName(name: String) {
+        _uiState.update { it.copy(targetActivityName = name) }
+        targetActivityInput.tryEmit(name)
+    }
+
+    /** Fetches personalized offers using exactly what's currently typed in the fields. */
+    fun fetchPersonalizedOffers() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isFetchingOffers = true) }
+            val state = _uiState.value
+            personalizationRepository.refreshOffers(state.decisionScopeName, state.targetActivityName)
+            _uiState.update { it.copy(isFetchingOffers = false) }
+        }
+    }
+
+    /** Reports a personalized offer actually scrolled into view. */
+    fun onOfferDisplayed(offerId: String) = personalizationRepository.trackOfferDisplayed(offerId)
+
+    /** Reports a tap on a personalized offer. */
+    fun onOfferTapped(offerId: String) = personalizationRepository.trackOfferTapped(offerId)
 }

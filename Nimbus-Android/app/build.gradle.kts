@@ -82,6 +82,7 @@ dependencies {
     implementation("com.adobe.marketing.mobile:lifecycle:3.0.1")
     implementation("com.adobe.marketing.mobile:liveupdates:3.0.0")
     implementation("com.adobe.marketing.mobile:messaging:3.13.0")
+    implementation("com.adobe.marketing.mobile:optimize:2.+")
 
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
     implementation("com.google.firebase:firebase-messaging")

@@ -6,12 +6,13 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.adobe.marketing.nimbus.datamodels.ConsentState
+import com.adobe.marketing.nimbus.di.ConsentDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class ConsentPreferences @Inject constructor(
-    private val dataStore: DataStore<Preferences>
+    @ConsentDataStore private val dataStore: DataStore<Preferences>
 ) {
     val consentState: Flow<ConsentState> = dataStore.data.map { prefs ->
         ConsentState.valueOf(prefs[CONSENT_KEY] ?: ConsentState.PENDING.name)
